@@ -74,10 +74,10 @@ export async function sendRunOfShowEmail(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') return { ok: false, reason: 'forbidden' }
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
 
   // 2. API key check up front so we fail fast with a clear message
   //    rather than rendering a PDF we can't send.

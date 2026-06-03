@@ -53,25 +53,24 @@ export async function loginUser(formData: FormData): Promise<LoginResult | never
   // Look up the role to decide where to land.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, roles')
+    .select('roles, roles')
     .eq('user_id', data.user.id)
     .maybeSingle()
-  const role = profile?.role ?? 'dj'
-  const roles: string[] = (profile as any)?.roles ?? []
+  const roles: string[] = profile?.roles ?? ['dj']
 
-  if (role === 'admin') {
+  if (roles.includes('admin')) {
     redirect('/events')
   }
-  if (role === 'viewer') {
+  if (roles.includes('viewer')) {
     redirect('/viewer/year')
   }
-  if (role === 'designer') {
+  if (roles.includes('designer')) {
     redirect('/designer/view')
   }
-  if (role === 'collab') {
+  if (roles.includes('collab')) {
     redirect('/collab/events')
   }
-  if (role === 'vendor') {
+  if (roles.includes('vendor')) {
     const { data: v } = await supabase
       .from('vendors')
       .select('w9_status')

@@ -33,20 +33,21 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, role')
+    .select('display_name, roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (profile?.role !== 'admin') {
-    if (profile?.role === 'viewer') redirect('/viewer/year')
-    if (profile?.role === 'designer') redirect('/designer/view')
-    if (profile?.role === 'collab') redirect('/collab/events')
-    if (profile?.role === 'vendor') redirect('/vendor/profile')
+  if (!roles.includes('admin')) {
+    if (roles.includes('viewer')) redirect('/viewer/year')
+    if (roles.includes('designer')) redirect('/designer/view')
+    if (roles.includes('collab')) redirect('/collab/events')
+    if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')
   }
 
   const displayName = profile?.display_name ?? user.email ?? 'Admin'
-  const role = profile?.role ?? 'unknown'
+  const roles: string[] = profile?.roles ?? []
+  const role = roles[0] ?? 'unknown'
 
   // Shared sidebar contents — used by both the desktop aside and the
   // mobile drawer so nav stays in one place.

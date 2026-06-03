@@ -19,13 +19,13 @@ export default async function VendorProfilePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, roles, display_name')
+    .select('roles, display_name')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (profile?.role === 'admin') redirect('/events')
-  if (profile?.role === 'dj') redirect('/dj/profile')
-  if (profile?.role !== 'vendor') redirect('/login')
+  if (profile?.roles?.includes('admin')) redirect('/events')
+  if (profile?.roles?.includes('dj') && !profile?.roles?.includes('vendor')) redirect('/dj/profile')
+  if (!profile?.roles?.includes('vendor')) redirect('/login')
 
   const roles: string[] = (profile as any)?.roles ?? []
 
@@ -149,7 +149,7 @@ export default async function VendorProfilePage() {
         </div>
 
         <div className="flex items-center justify-between">
-          <RoleNav roles={roles} primaryRole={profile?.role} currentPath="/vendor/profile" />
+          <RoleNav roles={roles} primaryRole={profile?.roles?.[0]} currentPath="/vendor/profile" />
           <form action="/auth/sign-out" method="post">
             <button
               type="submit"

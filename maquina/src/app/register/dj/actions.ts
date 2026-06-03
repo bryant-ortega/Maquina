@@ -14,7 +14,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
  *   2. Refuse if a djs row already exists for this email — friendly
  *      message + link to /login.
  *   3. Create the auth user via the admin client with email_confirm:true,
- *      password set, and `role: 'dj'` in user_metadata so the
+ *      password set, and `roles: ['dj']` in user_metadata so the
  *      handle_new_user trigger marks the profile as a DJ.
  *   4. Insert the djs row directly via the admin client. We're past the
  *      magic-link callback dance — once the password is on file, the
@@ -103,7 +103,7 @@ export async function registerDj(
       password: input.password,
       email_confirm: true,
       user_metadata: {
-        role: 'dj',
+        roles: ['dj'],
         display_name: input.dj_name,
       },
     })
@@ -222,10 +222,10 @@ async function reclaimOrphanAccount(
   // Make sure we're not about to attach DJ-shaped data to an admin/partner.
   const { data: existingProfile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', signed.user.id)
     .maybeSingle()
-  if (existingProfile?.role && existingProfile.role !== 'dj') {
+  if (existingProfile?.roles && !existingProfile.roles.includes('dj')) {
     await supabase.auth.signOut()
     return { ok: false, reason: 'orphan_wrong_role' }
   }
@@ -235,7 +235,7 @@ async function reclaimOrphanAccount(
   // user was originally registered, so update (not insert).
   await supabase
     .from('profiles')
-    .update({ role: 'dj', display_name: input.dj_name })
+    .update({ roles: ['dj'], display_name: input.dj_name })
     .eq('user_id', signed.user.id)
 
   // Insert the missing djs row.

@@ -36,15 +36,15 @@ export default async function DesignerLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, role')
+    .select('display_name, roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const role = profile?.role
-  if (role !== 'designer' && role !== 'admin') {
-    if (role === 'viewer') redirect('/viewer/year')
-    if (role === 'collab') redirect('/collab/events')
-    if (role === 'vendor') redirect('/vendor/profile')
+  const roles: string[] = profile?.roles ?? []
+  if (!roles.includes('designer') && !roles.includes('admin')) {
+    if (roles.includes('viewer')) redirect('/viewer/year')
+    if (roles.includes('collab')) redirect('/collab/events')
+    if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')
   }
 

@@ -92,7 +92,7 @@ export async function registerVendor(
       password: input.password,
       email_confirm: true,
       user_metadata: {
-        role: 'vendor',
+        roles: ['vendor'],
         display_name: input.company_name,
       },
     })
@@ -179,17 +179,17 @@ async function reclaimOrphanAccount(
 
   const { data: existingProfile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', signed.user.id)
     .maybeSingle()
-  if (existingProfile?.role && existingProfile.role !== 'vendor') {
+  if (existingProfile?.roles && !existingProfile.roles.includes('vendor')) {
     await supabase.auth.signOut()
     return { ok: false, reason: 'orphan_wrong_role' }
   }
 
   await supabase
     .from('profiles')
-    .update({ role: 'vendor', display_name: input.company_name })
+    .update({ roles: ['vendor'], display_name: input.company_name })
     .eq('user_id', signed.user.id)
 
   const { error: vendorErr } = await supabase.from('vendors').insert({

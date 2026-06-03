@@ -16,13 +16,13 @@ export default async function UploadVendorW9Page() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (profile?.role === 'admin') redirect('/events')
-  if (profile?.role === 'dj') redirect('/dj/profile')
-  if (profile?.role !== 'vendor') redirect('/login')
+  if (profile?.roles?.includes('admin')) redirect('/events')
+  if (profile?.roles?.includes('dj') && !profile?.roles?.includes('vendor')) redirect('/dj/profile')
+  if (!profile?.roles?.includes('vendor')) redirect('/login')
 
   const { data: vendor } = await supabase
     .from('vendors')

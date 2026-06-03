@@ -45,10 +45,10 @@ export async function uploadW9(formData: FormData): Promise<UploadW9Result> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'dj') return { ok: false, reason: 'wrong_role' }
+  if (!profile?.roles?.includes('dj')) return { ok: false, reason: 'wrong_role' }
 
   // The DJ must already exist in the djs table — set up at registration callback.
   const { data: dj } = await supabase

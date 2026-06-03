@@ -26,15 +26,15 @@ export default async function Home() {
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('roles')
       .eq('user_id', user.id)
       .maybeSingle()
-    const role = profile?.role ?? 'dj'
-    if (role === 'admin') redirect('/events')
-    if (role === 'collab') redirect('/collab/events')
-    if (role === 'viewer') redirect('/viewer/year')
-    if (role === 'designer') redirect('/designer/view')
-    if (role === 'vendor') redirect('/vendor/profile')
+    const roles: string[] = profile?.roles ?? ['dj']
+    if (roles.includes('admin')) redirect('/events')
+    if (roles.includes('collab')) redirect('/collab/events')
+    if (roles.includes('viewer')) redirect('/viewer/year')
+    if (roles.includes('designer')) redirect('/designer/view')
+    if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')
   }
   return <RootRedirect />

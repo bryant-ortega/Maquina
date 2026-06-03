@@ -85,10 +85,10 @@ async function requireAdmin() {
   if (!user) return { ok: false as const, reason: 'unauth' as const }
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') {
+  if (!profile?.roles?.includes('admin')) {
     return { ok: false as const, reason: 'forbidden' as const }
   }
   return { ok: true as const, supabase, profileId: profile.id as string }

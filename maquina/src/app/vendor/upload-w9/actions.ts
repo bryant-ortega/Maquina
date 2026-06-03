@@ -37,10 +37,10 @@ export async function uploadVendorW9(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'vendor') return { ok: false, reason: 'wrong_role' }
+  if (!profile?.roles?.includes('vendor')) return { ok: false, reason: 'wrong_role' }
 
   const { data: vendor } = await supabase
     .from('vendors')

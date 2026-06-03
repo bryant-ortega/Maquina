@@ -149,10 +149,10 @@ export async function updateBudget(
   }
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') {
+  if (!profile?.roles?.includes('admin')) {
     return { ok: false, reason: 'unauthorized', message: 'Admin only.' }
   }
 
@@ -408,10 +408,10 @@ export async function actualizeEvent(
   }
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') {
+  if (!profile?.roles?.includes('admin')) {
     return { ok: false, reason: 'unauthorized', message: 'Admin only.' }
   }
 

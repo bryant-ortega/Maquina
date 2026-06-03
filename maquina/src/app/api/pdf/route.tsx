@@ -47,10 +47,10 @@ export async function GET(req: Request) {
   // response when the queries return zero rows.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!profile || (profile.role !== 'admin' && profile.role !== 'collab')) {
+  if (!profile || (!profile.roles?.includes('admin') && !profile.roles?.includes('collab'))) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
@@ -63,7 +63,7 @@ export async function GET(req: Request) {
   if (view === 'month') {
     // Month view exports the whole calendar — admins only. Collabs
     // shouldn't see other LosGothsCo events.
-    if (profile.role !== 'admin') {
+    if (!profile.roles?.includes('admin')) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     }
     return handleMonth(url, supabase)

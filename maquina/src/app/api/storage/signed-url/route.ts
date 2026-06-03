@@ -64,15 +64,15 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  const role = profile?.role
+  const roles: string[] = profile?.roles ?? []
 
-  if (role !== 'admin') {
+  if (!roles.includes('admin')) {
     // DJ self-access: first path segment must equal user.id.
     const ownerSegment = storagePath.split('/')[0]
-    if (role !== 'dj' || ownerSegment !== user.id) {
+    if (!roles.includes('dj') || ownerSegment !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
   }

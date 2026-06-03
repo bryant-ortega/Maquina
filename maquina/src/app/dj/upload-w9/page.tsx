@@ -15,12 +15,12 @@ export default async function UploadW9Page() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (profile?.role === 'admin') redirect('/events')
-  if (profile?.role !== 'dj') redirect('/login')
+  if (profile?.roles?.includes('admin')) redirect('/events')
+  if (!profile?.roles?.includes('dj')) redirect('/login')
 
   const { data: dj } = await supabase
     .from('djs')

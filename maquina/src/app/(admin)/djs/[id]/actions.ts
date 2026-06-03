@@ -74,10 +74,10 @@ export async function updateDj(formData: FormData): Promise<UpdateDjResult> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') return { ok: false, reason: 'forbidden' }
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
 
   const raw = {
     id: formData.get('id'),
@@ -173,10 +173,10 @@ export async function uploadDjW9(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') return { ok: false, reason: 'forbidden' }
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
 
   const djId = formData.get('dj_id')
   if (typeof djId !== 'string' || !UUID_LIKE.test(djId)) {

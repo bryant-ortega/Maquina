@@ -41,13 +41,12 @@ export default async function ViewerLayout({
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const role = profile?.role
   const roles: string[] = (profile as any)?.roles ?? []
-  const hasViewerRole = role === 'viewer' || roles.includes('viewer')
+  const hasViewerRole = roles.includes('viewer')
   if (!hasViewerRole && role !== 'admin') {
     // DJ / collab / unknown — punt to /dj/profile, the existing
     // catch-all for non-admin non-collab non-viewer sessions.
-    if (role === 'collab') redirect('/collab/events')
+    if (roles.includes('collab') && !roles.includes('viewer')) redirect('/collab/events')
     redirect('/dj/profile')
   }
 
@@ -64,7 +63,7 @@ export default async function ViewerLayout({
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <RoleNav roles={roles} primaryRole={role} currentPath="/viewer/year" />
+            <RoleNav roles={roles} primaryRole={roles[0]} currentPath="/viewer/year" />
             <span className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:inline">
               {displayName}
             </span>

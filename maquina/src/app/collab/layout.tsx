@@ -34,14 +34,14 @@ export default async function CollabLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, role')
+    .select('display_name, roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
-  if (profile?.role === 'admin') {
+  if (profile?.roles?.includes('admin')) {
     redirect('/events')
   }
-  if (profile?.role !== 'collab') {
+  if (!profile?.roles?.includes('collab')) {
     // DJ or anything unexpected — punt to /dj/profile, the existing
     // post-login page for non-admin non-collab roles.
     redirect('/dj/profile')

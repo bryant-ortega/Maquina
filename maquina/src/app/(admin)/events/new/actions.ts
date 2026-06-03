@@ -155,10 +155,10 @@ export async function createEvent(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') return { ok: false, reason: 'forbidden' }
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
 
   // 2. Validate.
   const parsed = CreateEventInput.safeParse(input)

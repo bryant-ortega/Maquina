@@ -164,10 +164,10 @@ export async function updateEvent(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') return { ok: false, reason: 'forbidden' }
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
 
   // 2. Validate.
   const parsed = UpdateEventInput.safeParse(input)
@@ -612,10 +612,10 @@ export async function addEventCollaborator(
   if (!user) return { ok: false, reason: 'unauthorized' }
   const { data: actor } = await supabase
     .from('profiles')
-    .select('id, role')
+    .select('id, roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!actor || actor.role !== 'admin') {
+  if (!actor || !actor.roles?.includes('admin')) {
     return { ok: false, reason: 'unauthorized' }
   }
 
@@ -655,11 +655,11 @@ export async function addEventCollaborator(
     // Confirm role is collab. If admin/dj, refuse.
     const { data: existingProfile } = await admin
       .from('profiles')
-      .select('role')
+      .select('roles')
       .eq('user_id', existingAuth.id)
       .maybeSingle()
-    const role = existingProfile?.role
-    if (role && role !== 'collab') {
+    const existingRoles: string[] = existingProfile?.roles ?? []
+    if (existingRoles.length > 0 && !existingRoles.includes('collab')) {
       return {
         ok: false,
         reason: 'create_failed',
@@ -744,10 +744,10 @@ export async function removeEventCollaborator(
   if (!user) return { ok: false, reason: 'unauthorized' }
   const { data: actor } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!actor || actor.role !== 'admin') {
+  if (!actor || !actor.roles?.includes('admin')) {
     return { ok: false, reason: 'unauthorized' }
   }
 
@@ -814,10 +814,10 @@ export async function deleteEvent(input: { event_id: string }): Promise<DeleteEv
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (profile?.role !== 'admin') return { ok: false, reason: 'forbidden' }
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
 
   const { error } = await supabase
     .from('events')
