@@ -663,7 +663,7 @@ export async function addEventCollaborator(
       return {
         ok: false,
         reason: 'create_failed',
-        message: `Email is already in use by a ${role} account. Use a different email for this collaborator.`,
+        message: `Email is already in use by a ${existingRoles[0] ?? 'existing'} account. Use a different email for this collaborator.`,
       }
     }
     targetUserId = existingAuth.id

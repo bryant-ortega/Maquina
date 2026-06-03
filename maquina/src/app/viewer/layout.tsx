@@ -37,13 +37,13 @@ export default async function ViewerLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, role, roles')
+    .select('display_name, roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
   const roles: string[] = (profile as any)?.roles ?? []
   const hasViewerRole = roles.includes('viewer')
-  if (!hasViewerRole && role !== 'admin') {
+  if (!hasViewerRole && !roles.includes('admin')) {
     // DJ / collab / unknown — punt to /dj/profile, the existing
     // catch-all for non-admin non-collab non-viewer sessions.
     if (roles.includes('collab') && !roles.includes('viewer')) redirect('/collab/events')

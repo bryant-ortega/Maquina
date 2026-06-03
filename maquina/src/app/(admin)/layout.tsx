@@ -37,6 +37,8 @@ export default async function AdminLayout({
     .eq('user_id', user.id)
     .maybeSingle()
 
+  const roles: string[] = profile?.roles ?? []
+
   if (!roles.includes('admin')) {
     if (roles.includes('viewer')) redirect('/viewer/year')
     if (roles.includes('designer')) redirect('/designer/view')
@@ -46,7 +48,6 @@ export default async function AdminLayout({
   }
 
   const displayName = profile?.display_name ?? user.email ?? 'Admin'
-  const roles: string[] = profile?.roles ?? []
   const role = roles[0] ?? 'unknown'
 
   // Shared sidebar contents — used by both the desktop aside and the
