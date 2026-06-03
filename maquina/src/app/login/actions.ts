@@ -53,7 +53,7 @@ export async function loginUser(formData: FormData): Promise<LoginResult | never
   // Look up the role to decide where to land.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('roles, roles')
+    .select('roles')
     .eq('user_id', data.user.id)
     .maybeSingle()
   const roles: string[] = profile?.roles ?? ['dj']
