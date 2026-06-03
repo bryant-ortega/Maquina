@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { RoleNav } from '@/components/role-nav'
 
 /**
  * Vendor's own profile view. Read-only — admins edit vendor records
@@ -18,13 +19,15 @@ export default async function VendorProfilePage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, display_name')
+    .select('role, roles, display_name')
     .eq('user_id', user.id)
     .maybeSingle()
 
   if (profile?.role === 'admin') redirect('/events')
   if (profile?.role === 'dj') redirect('/dj/profile')
   if (profile?.role !== 'vendor') redirect('/login')
+
+  const roles: string[] = (profile as any)?.roles ?? []
 
   const { data: vendor } = await supabase
     .from('vendors')
@@ -145,7 +148,8 @@ export default async function VendorProfilePage() {
           </p>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <RoleNav roles={roles} primaryRole={profile?.role} currentPath="/vendor/profile" />
           <form action="/auth/sign-out" method="post">
             <button
               type="submit"

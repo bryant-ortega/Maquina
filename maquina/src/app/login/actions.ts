@@ -53,10 +53,11 @@ export async function loginUser(formData: FormData): Promise<LoginResult | never
   // Look up the role to decide where to land.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, roles')
     .eq('user_id', data.user.id)
     .maybeSingle()
   const role = profile?.role ?? 'dj'
+  const roles: string[] = (profile as any)?.roles ?? []
 
   if (role === 'admin') {
     redirect('/events')

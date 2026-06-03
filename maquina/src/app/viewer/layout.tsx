@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { RoleNav } from '@/components/role-nav'
 
 /**
  * Viewer shell — Phase 17g.
@@ -36,12 +37,14 @@ export default async function ViewerLayout({
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, role')
+    .select('display_name, role, roles')
     .eq('user_id', user.id)
     .maybeSingle()
 
   const role = profile?.role
-  if (role !== 'viewer' && role !== 'admin') {
+  const roles: string[] = (profile as any)?.roles ?? []
+  const hasViewerRole = role === 'viewer' || roles.includes('viewer')
+  if (!hasViewerRole && role !== 'admin') {
     // DJ / collab / unknown — punt to /dj/profile, the existing
     // catch-all for non-admin non-collab non-viewer sessions.
     if (role === 'collab') redirect('/collab/events')
@@ -61,6 +64,7 @@ export default async function ViewerLayout({
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <RoleNav roles={roles} primaryRole={role} currentPath="/viewer/year" />
             <span className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:inline">
               {displayName}
             </span>
