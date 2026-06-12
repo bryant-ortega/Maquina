@@ -96,6 +96,8 @@ export function NewEventForm({
   const [collab, setCollab] = useState(false)
   const [doorsTime, setDoorsTime] = useState('21:00')
   const [endTime, setEndTime] = useState('02:00')
+  const [losgothsLoadInTime, setLosgothsLoadInTime] = useState('')
+  const [djLoadInTime, setDjLoadInTime] = useState('')
   const [capacity, setCapacity] = useState('')
   const [guarantee, setGuarantee] = useState(false)
   const [barIncluded, setBarIncluded] = useState(false)
@@ -214,6 +216,8 @@ export function NewEventForm({
       collab,
       doors_time: doorsTime,
       end_time: endTime,
+      losgoths_load_in_time: losgothsLoadInTime,
+      dj_load_in_time: djLoadInTime,
       capacity,
       guarantee,
       bar_included: barIncluded,
@@ -524,6 +528,40 @@ export function NewEventForm({
               className={inputClass}
               disabled={pending}
             />
+          </Field>
+
+          <Field
+            label="LosGothsCo load-in (optional)"
+            error={fieldErrors.losgoths_load_in_time}
+          >
+            <input
+              type="time"
+              value={losgothsLoadInTime}
+              onChange={(e) => setLosgothsLoadInTime(e.target.value)}
+              className={inputClass}
+              disabled={pending}
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-500">
+              Run of show default: {addMinutes(doorsTime || '00:00', -180)}{' '}
+              (doors − 3h). Leave blank to use the default.
+            </p>
+          </Field>
+
+          <Field
+            label="DJs load-in (optional)"
+            error={fieldErrors.dj_load_in_time}
+          >
+            <input
+              type="time"
+              value={djLoadInTime}
+              onChange={(e) => setDjLoadInTime(e.target.value)}
+              className={inputClass}
+              disabled={pending}
+            />
+            <p className="text-xs text-zinc-500 dark:text-zinc-500">
+              Run of show default: {addMinutes(doorsTime || '00:00', -90)}{' '}
+              (doors − 1.5h). Leave blank to use the default.
+            </p>
           </Field>
 
           <Field label="Capacity" error={fieldErrors.capacity}>

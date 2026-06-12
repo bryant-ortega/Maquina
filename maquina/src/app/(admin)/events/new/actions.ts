@@ -102,6 +102,14 @@ const CreateEventInput = z.object({
   collab: z.boolean().default(false),
   doors_time: z.string().regex(HHMM, 'Invalid doors time'),
   end_time: z.string().regex(HHMM, 'Invalid end time'),
+  losgoths_load_in_time: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().regex(HHMM, 'Invalid load-in time').optional()
+  ),
+  dj_load_in_time: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().regex(HHMM, 'Invalid load-in time').optional()
+  ),
   capacity: optionalNumber,
   guarantee: z.boolean().default(false),
   bar_included: z.boolean().default(false),
@@ -273,6 +281,8 @@ export async function createEvent(
       stages: stagesCount,
       doors_time: data.doors_time,
       end_time: data.end_time,
+      losgoths_load_in_time: data.losgoths_load_in_time ?? null,
+      dj_load_in_time: data.dj_load_in_time ?? null,
       capacity: data.capacity ?? null,
       guarantee: data.guarantee,
       bar_included: data.bar_included,

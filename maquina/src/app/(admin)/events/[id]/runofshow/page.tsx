@@ -43,7 +43,7 @@ export default async function RunOfShowPage({
     supabase
       .from('events')
       .select(
-        'id, event_id, title, date, city, state, doors_time, end_time'
+        'id, event_id, title, date, city, state, doors_time, end_time, losgoths_load_in_time, dj_load_in_time'
       )
       .eq('id', id)
       .maybeSingle(),
@@ -88,6 +88,8 @@ export default async function RunOfShowPage({
   const eventTimes = {
     doors_time: event.doors_time as string | null,
     end_time: event.end_time as string | null,
+    losgoths_load_in_time: event.losgoths_load_in_time as string | null,
+    dj_load_in_time: event.dj_load_in_time as string | null,
   }
 
   // Strip ':SS' tail off the wall-clock display (Postgres TIME comes

@@ -34,7 +34,7 @@ export default async function EditEventPage({
     supabase
       .from('events')
       .select(
-        'id, year, date, event_id, weekend_number, weekend_flag, day_of_week, title, type, venue_id, city, state, status, collab, stages, doors_time, end_time, capacity, guarantee, bar_included, rent, split_pct, venue_tix_fee, advance_contact_email, advance_contact_phone, announce_date, begin_art_date, art_due_date, on_sale_date, venues(name)'
+        'id, year, date, event_id, weekend_number, weekend_flag, day_of_week, title, type, venue_id, city, state, status, collab, stages, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, capacity, guarantee, bar_included, rent, split_pct, venue_tix_fee, advance_contact_email, advance_contact_phone, announce_date, begin_art_date, art_due_date, on_sale_date, venues(name)'
       )
       .eq('id', id)
       .maybeSingle(),
@@ -186,6 +186,10 @@ export default async function EditEventPage({
             collab: !!event.collab,
             doors_time: trimTime(event.doors_time as string | null),
             end_time: trimTime(event.end_time as string | null),
+            losgoths_load_in_time: trimTime(
+              event.losgoths_load_in_time as string | null
+            ),
+            dj_load_in_time: trimTime(event.dj_load_in_time as string | null),
             capacity: event.capacity == null ? '' : String(event.capacity),
             guarantee: !!event.guarantee,
             bar_included: !!event.bar_included,

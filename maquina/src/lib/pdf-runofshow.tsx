@@ -57,7 +57,7 @@ export async function renderRunOfShowPdf({
     sb
       .from('events')
       .select(
-        'id, event_id, title, date, city, state, doors_time, end_time'
+        'id, event_id, title, date, city, state, doors_time, end_time, losgoths_load_in_time, dj_load_in_time'
       )
       .eq('id', eventId)
       .maybeSingle(),
@@ -96,6 +96,8 @@ export async function renderRunOfShowPdf({
   const eventTimes = {
     doors_time: event.doors_time as string | null,
     end_time: event.end_time as string | null,
+    losgoths_load_in_time: event.losgoths_load_in_time as string | null,
+    dj_load_in_time: event.dj_load_in_time as string | null,
   }
   const doorsMin = parseHHMM(event.doors_time as string | null)
   let endMin = parseHHMM(event.end_time as string | null)

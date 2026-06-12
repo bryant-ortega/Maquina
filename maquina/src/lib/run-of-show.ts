@@ -78,6 +78,18 @@ export type RunOfShowSlot = {
 export type RunOfShowEvent = {
   doors_time: string | null | undefined
   end_time: string | null | undefined
+  /**
+   * Optional manual override for the "LosGothsCo load-in" production
+   * row (default doors - 180min). Same format as doors_time — 'HH:MM'
+   * or 'HH:MM:SS'. A time at/after doors is treated as the previous
+   * evening (load-in always precedes doors).
+   */
+  losgoths_load_in_time?: string | null
+  /**
+   * Optional manual override for the "DJs load-in" production row
+   * (default doors - 90min). Same rules as losgoths_load_in_time.
+   */
+  dj_load_in_time?: string | null
 }
 
 /**
@@ -164,6 +176,25 @@ const SLOT_OFFSETS: Record<
  * the SLOT_TYPES enum is closed, but new types could land before this
  * map updates).
  */
+/**
+ * Resolve a load-in row's minutes-from-midnight: the manual override
+ * when set, otherwise `defaultMinutes` (doors +/- a fixed offset).
+ *
+ * Load-in always precedes doors. If an override time parses to >= doors
+ * (e.g., an admin enters "22:00" for a midnight-doors event, meaning
+ * "the night before"), normalize it back a day so it still sorts ahead
+ * of Doors.
+ */
+function resolveLoadInMinutes(
+  override: string | null | undefined,
+  doors: number,
+  defaultMinutes: number
+): number {
+  if (!override) return defaultMinutes
+  const minutes = parseHHMM(override)
+  return minutes >= doors ? minutes - 1440 : minutes
+}
+
 export function buildSchedule(
   event: RunOfShowEvent,
   slots: RunOfShowSlot[]
@@ -177,15 +208,25 @@ export function buildSchedule(
   const rows: RunOfShowRow[] = []
 
   // --- Production: pre-doors --------------------------------------------
+  const losgothsLoadIn = resolveLoadInMinutes(
+    event.losgoths_load_in_time,
+    doors,
+    doors - 180
+  )
   rows.push({
-    minutes: doors - 180,
-    time: formatHHMM12(doors - 180),
+    minutes: losgothsLoadIn,
+    time: formatHHMM12(losgothsLoadIn),
     label: 'LosGothsCo load-in',
     kind: 'production',
   })
+  const djLoadIn = resolveLoadInMinutes(
+    event.dj_load_in_time,
+    doors,
+    doors - 90
+  )
   rows.push({
-    minutes: doors - 90,
-    time: formatHHMM12(doors - 90),
+    minutes: djLoadIn,
+    time: formatHHMM12(djLoadIn),
     label: 'DJs load-in',
     kind: 'production',
   })
