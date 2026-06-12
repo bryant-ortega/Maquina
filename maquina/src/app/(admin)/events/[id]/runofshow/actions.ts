@@ -27,14 +27,27 @@ import { renderRunOfShowPdf } from '@/lib/pdf-runofshow'
  * (DKIM + SPF + return-path) for sends to land in inboxes.
  */
 
+// Accepts a single email, or multiple comma/semicolon/whitespace-separated
+// emails, from the "Send test" field. Splits + validates each address;
+// an empty/blank field becomes `undefined` (normal send, not a test).
+const TestToInput = z.preprocess((v) => {
+  if (typeof v !== 'string') return v
+  const list = v
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return list.length > 0 ? list : undefined
+}, z.array(z.string().trim().toLowerCase().email('Invalid email address')).max(10).optional())
+
 const Input = z.object({
   event_id: z.string().uuid(),
   /**
-   * If provided, the email is sent ONLY to this address — bypasses the
+   * If provided, the email is sent ONLY to these addresses — bypasses the
    * lineup / advance-contact / admin recipient gathering. Useful for
    * sanity-checking a brand-new event's PDF render before broadcasting.
+   * Accepts one address, or several separated by commas/spaces.
    */
-  test_to: z.string().email().optional(),
+  test_to: TestToInput,
 })
 
 export type SendRosResult =
@@ -62,7 +75,8 @@ export async function sendRunOfShowEmail(
 ): Promise<SendRosResult> {
   const parsed = Input.safeParse(input)
   if (!parsed.success) {
-    return { ok: false, reason: 'invalid', message: parsed.error.message }
+    const message = parsed.error.issues.map((i) => i.message).join('; ')
+    return { ok: false, reason: 'invalid', message }
   }
 
   // 1. Auth + admin gate.
@@ -104,7 +118,10 @@ export async function sendRunOfShowEmail(
   }
 
   if (parsed.data.test_to) {
-    add(parsed.data.test_to, 'Test recipient')
+    const testTo = parsed.data.test_to
+    testTo.forEach((email, i) =>
+      add(email, testTo.length > 1 ? `Test recipient ${i + 1}` : 'Test recipient')
+    )
   } else {
     const { data: ev } = await supabase
       .from('events')

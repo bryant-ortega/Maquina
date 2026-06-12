@@ -65,12 +65,13 @@ export function EmailRunOfShowButton({ eventId }: { eventId: string }) {
 
       <div className="flex items-center gap-1">
         <input
-          type="email"
+          type="text"
           value={testTo}
           onChange={(e) => setTestTo(e.target.value)}
-          placeholder="test@example.com"
+          placeholder="test@example.com, ..."
+          title="One email, or several separated by commas/spaces"
           disabled={pending}
-          className="w-44 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-700 outline-none focus:border-zinc-400 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+          className="w-56 rounded-md border border-zinc-200 bg-white px-2 py-1 text-[11px] text-zinc-700 outline-none focus:border-zinc-400 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
         />
         <button
           type="button"
