@@ -141,7 +141,7 @@ async function handleBudget(
     supabase
       .from('event_budgets')
       .select(
-        'id, drop_off, guests, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
+        'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
       )
       .eq('event_id', eventId)
       .eq('budget_type', type)
@@ -188,6 +188,7 @@ async function handleBudget(
     tiers,
     drop_off: Number(budget.drop_off ?? 0),
     guests: Number(budget.guests ?? 0),
+    tix_tax: Number(budget.tix_tax ?? 0),
     deductions: Number(budget.deductions ?? 0),
     sponsor_income: Number(budget.sponsor_income ?? 0),
     vendor_income: Number(budget.vendor_income ?? 0),

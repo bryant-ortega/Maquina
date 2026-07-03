@@ -120,6 +120,8 @@ export type EventViewRow = {
   losgothsco_tix_net?: number | null
   gross_tix_sold?: number | null
   gross_tix_total?: number | null
+  tix_tax?: number | null
+  net_tix_total?: number | null
   paid_attendance?: number | null
   total_attendance?: number | null
   bar_gross?: number | null
@@ -201,6 +203,8 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'total_attendance',  label: 'Total attendance', category: 'financial', kind: 'number',   accessor: (r) => r.total_attendance ?? 0 },
   { key: 'gross_tix_sold',    label: 'Tix sold',         category: 'financial', kind: 'number',   accessor: (r) => r.gross_tix_sold ?? 0 },
   { key: 'gross_tix_total',   label: 'Tix gross',        category: 'financial', kind: 'currency', accessor: (r) => r.gross_tix_total ?? 0 },
+  { key: 'tix_tax',           label: 'Tix tax',           category: 'financial', kind: 'currency', accessor: (r) => r.tix_tax ?? 0 },
+  { key: 'net_tix_total',     label: 'Tix net (after tax)', category: 'financial', kind: 'currency', accessor: (r) => r.net_tix_total ?? 0 },
   { key: 'losgothsco_tix_net',label: 'Tix net (LGCo)',   category: 'financial', kind: 'currency', accessor: (r) => r.losgothsco_tix_net ?? 0 },
   { key: 'bar_gross',         label: 'Bar gross',        category: 'financial', kind: 'currency', accessor: (r) => r.bar_gross ?? 0 },
   { key: 'losgothsco_bar',    label: 'Bar (LGCo)',       category: 'financial', kind: 'currency', accessor: (r) => r.losgothsco_bar ?? 0 },

@@ -224,7 +224,7 @@ export default async function ViewRendererPage({
     const { data: budgets } = await supabase
       .from('event_budgets')
       .select(
-        'id, event_id, drop_off, guests, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
+        'id, event_id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
       )
       .in('event_id', eventIds)
       .eq('budget_type', 'estimated')
@@ -234,6 +234,7 @@ export default async function ViewRendererPage({
       event_id: string
       drop_off: number | null
       guests: number | null
+      tix_tax: number | null
       deductions: number | null
       sponsor_income: number | null
       vendor_income: number | null
@@ -290,6 +291,7 @@ export default async function ViewRendererPage({
         tiers: tiersByBudget.get(b.id) ?? [],
         drop_off: Number(b.drop_off ?? 0),
         guests: Number(b.guests ?? 0),
+        tix_tax: Number(b.tix_tax ?? 0),
         deductions: Number(b.deductions ?? 0),
         sponsor_income: Number(b.sponsor_income ?? 0),
         vendor_income: Number(b.vendor_income ?? 0),
@@ -359,6 +361,8 @@ export default async function ViewRendererPage({
       losgothsco_tix_net: summary?.losgothsco_tix_net ?? null,
       gross_tix_sold: summary?.gross_tix_sold ?? null,
       gross_tix_total: summary?.gross_tix_total ?? null,
+      tix_tax: summary?.tix_tax ?? null,
+      net_tix_total: summary?.net_tix_total ?? null,
       paid_attendance: summary?.paid_attendance ?? null,
       total_attendance: summary?.total_attendance ?? null,
       bar_gross: summary?.bar_gross ?? null,

@@ -68,6 +68,12 @@ export type BudgetInputs = {
   /** Comp / guest list attendees who don't show up in tier sales. */
   guests: number
   /**
+   * Flat dollar sales tax on ticket revenue. Subtracted from gross_tix_total
+   * BEFORE the split_pct cut is applied, so LosGothsCo's percentage is taken
+   * on net (post-tax) ticket revenue, not the sticker-price gross.
+   */
+  tix_tax: number
+  /**
    * Flat dollar deductions from walkout (rolled-up "cost of doing business"
    * the admin types in to model what they actually expect to walk with).
    */
@@ -101,6 +107,8 @@ export type BudgetSummary = {
   paid_attendance: number
   total_attendance: number
   gross_tix_total: number
+  tix_tax: number
+  net_tix_total: number
   losgothsco_tix_net: number
   bar_gross: number
   losgothsco_bar: number
@@ -132,6 +140,7 @@ export function computeBudget(input: BudgetInputs): BudgetSummary {
 
   const drop_off = clampNonNeg(input.drop_off)
   const guests = clampNonNeg(input.guests)
+  const tix_tax = clampNonNeg(input.tix_tax)
   const deductions = clampNonNeg(input.deductions)
   const sponsor_income = clampNonNeg(input.sponsor_income)
   const vendor_income = clampNonNeg(input.vendor_income)
@@ -145,7 +154,8 @@ export function computeBudget(input: BudgetInputs): BudgetSummary {
     (acc, t) => acc + t.price * t.sold,
     0
   )
-  const losgothsco_tix_net = gross_tix_total * (split_pct / 100)
+  const net_tix_total = Math.max(0, gross_tix_total - tix_tax)
+  const losgothsco_tix_net = net_tix_total * (split_pct / 100)
 
   const barPerHead = clampNonNeg(
     input.bar_per_head ?? BAR_PER_HEAD
@@ -181,6 +191,8 @@ export function computeBudget(input: BudgetInputs): BudgetSummary {
     paid_attendance,
     total_attendance,
     gross_tix_total,
+    tix_tax,
+    net_tix_total,
     losgothsco_tix_net,
     bar_gross,
     losgothsco_bar,

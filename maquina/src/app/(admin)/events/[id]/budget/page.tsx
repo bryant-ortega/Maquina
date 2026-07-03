@@ -51,7 +51,7 @@ export default async function BudgetPage({
   const { data: estimated } = await supabase
     .from('event_budgets')
     .select(
-      'id, drop_off, guests, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
+      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
     )
     .eq('event_id', id)
     .eq('budget_type', 'estimated')
@@ -63,7 +63,7 @@ export default async function BudgetPage({
   const { data: finalBudget } = await supabase
     .from('event_budgets')
     .select(
-      'id, drop_off, guests, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
+      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
     )
     .eq('event_id', id)
     .eq('budget_type', 'final')
@@ -185,6 +185,7 @@ export default async function BudgetPage({
             estimated={{
               drop_off: Number(estimated.drop_off ?? 0),
               guests: Number(estimated.guests ?? 0),
+              tix_tax: Number(estimated.tix_tax ?? 0),
               deductions: Number(estimated.deductions ?? 0),
               sponsor_income: Number(estimated.sponsor_income ?? 0),
               vendor_income: Number(estimated.vendor_income ?? 0),
@@ -198,6 +199,7 @@ export default async function BudgetPage({
             final={{
               drop_off: Number(finalBudget.drop_off ?? 0),
               guests: Number(finalBudget.guests ?? 0),
+              tix_tax: Number(finalBudget.tix_tax ?? 0),
               deductions: Number(finalBudget.deductions ?? 0),
               sponsor_income: Number(finalBudget.sponsor_income ?? 0),
               vendor_income: Number(finalBudget.vendor_income ?? 0),
@@ -283,6 +285,7 @@ export default async function BudgetPage({
             id: activeBudget.id as string,
             drop_off: Number(activeBudget.drop_off ?? 0),
             guests: Number(activeBudget.guests ?? 0),
+            tix_tax: Number(activeBudget.tix_tax ?? 0),
             deductions: Number(activeBudget.deductions ?? 0),
             sponsor_income: Number(activeBudget.sponsor_income ?? 0),
             vendor_income: Number(activeBudget.vendor_income ?? 0),

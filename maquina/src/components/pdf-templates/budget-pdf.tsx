@@ -203,6 +203,26 @@ export function BudgetPDF({
             {formatUSD(summary.gross_tix_total)}
           </Text>
         </View>
+        {summary.tix_tax > 0 && (
+          <>
+            <View style={styles.tableRow}>
+              <Text style={[styles.tableCellMuted, { flex: 1 }]}>
+                Ticket tax
+              </Text>
+              <Text style={[styles.numCell, { width: 220 }]}>
+                − {formatUSD(summary.tix_tax)}
+              </Text>
+            </View>
+            <View style={styles.tableRow}>
+              <Text style={[styles.tableCellMuted, { flex: 1 }]}>
+                Net ticket sales (after tax)
+              </Text>
+              <Text style={[styles.numCell, { width: 220 }]}>
+                {formatUSD(summary.net_tix_total)}
+              </Text>
+            </View>
+          </>
+        )}
 
         {/* Tickets / attendance summary */}
         <View style={styles.tableRow}>
@@ -233,7 +253,7 @@ export function BudgetPDF({
         {/* Net split */}
         <View style={styles.tableRow}>
           <Text style={[styles.tableCell, { flex: 1 }]}>
-            LosGothsCo ticket net ({event.splitPct}% of gross)
+            LosGothsCo ticket net ({event.splitPct}% of net, after tax)
           </Text>
           <Text style={[styles.numCellBold, { width: 220 }]}>
             {formatUSD(summary.losgothsco_tix_net)}
@@ -413,10 +433,10 @@ export function BudgetPDF({
         <View style={styles.sectionRule} />
         <View style={styles.tableRow}>
           <Text style={[styles.tableCellMuted, { flex: 1 }]}>
-            LosGothsCo split on gross ticket sales
+            LosGothsCo split on net ticket sales{summary.tix_tax > 0 ? ' (after tax)' : ''}
           </Text>
           <Text style={[styles.numCell, { width: 220 }]}>
-            {event.splitPct}% × {formatUSD(summary.gross_tix_total)} ={' '}
+            {event.splitPct}% × {formatUSD(summary.net_tix_total)} ={' '}
             {formatUSD(summary.losgothsco_tix_net)}
           </Text>
         </View>

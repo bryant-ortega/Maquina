@@ -40,6 +40,7 @@ type EventCommon = {
 type BudgetScalars = {
   drop_off: number
   guests: number
+  tix_tax: number
   deductions: number
   sponsor_income: number
   vendor_income: number
@@ -94,6 +95,7 @@ export function BudgetCompare({
     tiers: estimatedTiers,
     drop_off: estimated.drop_off,
     guests: estimated.guests,
+    tix_tax: estimated.tix_tax,
     deductions: estimated.deductions,
     sponsor_income: estimated.sponsor_income,
     vendor_income: estimated.vendor_income,
@@ -112,6 +114,7 @@ export function BudgetCompare({
     tiers: finalTiers,
     drop_off: final.drop_off,
     guests: final.guests,
+    tix_tax: final.tix_tax,
     deductions: final.deductions,
     sponsor_income: final.sponsor_income,
     vendor_income: final.vendor_income,
@@ -176,6 +179,20 @@ function SummarySection({
             label: 'Gross ticket sales',
             est: est.gross_tix_total,
             fin: fin.gross_tix_total,
+            betterWhen: 'higher',
+            format: 'usd',
+          },
+          {
+            label: 'Ticket tax',
+            est: est.tix_tax,
+            fin: fin.tix_tax,
+            betterWhen: 'lower',
+            format: 'usd',
+          },
+          {
+            label: 'Net ticket sales (after tax)',
+            est: est.net_tix_total,
+            fin: fin.net_tix_total,
             betterWhen: 'higher',
             format: 'usd',
           },

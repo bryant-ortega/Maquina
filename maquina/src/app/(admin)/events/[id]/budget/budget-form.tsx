@@ -96,6 +96,7 @@ export type BudgetFormProps = {
     id: string
     drop_off: number
     guests: number
+    tix_tax: number
     deductions: number
     sponsor_income: number
     vendor_income: number
@@ -165,6 +166,7 @@ export function BudgetForm({
 
   const [dropOff, setDropOff] = useState<string>(String(budget.drop_off))
   const [guests, setGuests] = useState<string>(String(budget.guests))
+  const [tixTax, setTixTax] = useState<string>(String(budget.tix_tax))
   const [deductions, setDeductions] = useState<string>(
     String(budget.deductions)
   )
@@ -207,6 +209,7 @@ export function BudgetForm({
         })),
         drop_off: Number(dropOff),
         guests: Number(guests),
+        tix_tax: Number(tixTax),
         deductions: Number(deductions),
         sponsor_income: Number(sponsorIncome),
         vendor_income: Number(vendorIncome),
@@ -228,6 +231,7 @@ export function BudgetForm({
       tiers,
       dropOff,
       guests,
+      tixTax,
       deductions,
       sponsorIncome,
       vendorIncome,
@@ -357,6 +361,7 @@ export function BudgetForm({
       budget_id: budget.id,
       drop_off: Number(dropOff) || 0,
       guests: Number(guests) || 0,
+      tix_tax: Number(tixTax) || 0,
       deductions: Number(deductions) || 0,
       sponsor_income: Number(sponsorIncome) || 0,
       vendor_income: Number(vendorIncome) || 0,
@@ -775,6 +780,24 @@ export function BudgetForm({
               </span>
             )}
           </div>
+
+          <div className="grid grid-cols-1 gap-4 border-t border-zinc-100 px-4 py-4 sm:grid-cols-3 dark:border-zinc-900">
+            <NumberField
+              label="Sales tax ($)"
+              help="Flat $ deducted from gross ticket sales before the split % is applied."
+              value={tixTax}
+              onChange={setTixTax}
+              error={fieldErrors.tix_tax}
+            />
+            <MerchLine
+              label="Gross tix"
+              value={formatUSDCents(summary.gross_tix_total)}
+            />
+            <MerchLine
+              label="Net tix (after tax)"
+              value={formatUSDCents(summary.net_tix_total)}
+            />
+          </div>
         </div>
       </section>
 
@@ -1000,6 +1023,15 @@ function SummaryCard({
         <Mini label="Paid attendance" value={String(summary.paid_attendance)} />
         <Mini label="Total attendance" value={String(summary.total_attendance)} />
         <Mini label="Gross tix" value={formatUSDCents(summary.gross_tix_total)} />
+        <Mini
+          label="Tix tax"
+          value={
+            summary.tix_tax > 0
+              ? `− ${formatUSDCents(summary.tix_tax)}`
+              : formatUSDCents(0)
+          }
+          muted={summary.tix_tax === 0}
+        />
         <Mini
           label="LGCo tix net"
           value={formatUSDCents(summary.losgothsco_tix_net)}

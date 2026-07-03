@@ -12,7 +12,8 @@ import { EXPENSE_CATEGORY_ORDER } from '@/lib/budget'
  * Touches three tables, all under one service-role client so a partial
  * failure is reported back as a single error:
  *   1. event_budgets             — scalar income inputs (drop_off, guests,
- *                                  deductions, sponsor_income, vendor_income)
+ *                                  tix_tax, deductions, sponsor_income,
+ *                                  vendor_income)
  *   2. event_budget_expenses     — diff against the form's expense list
  *                                  (keep+update existing rows by id, insert
  *                                  rows with no id, delete rows that no
@@ -103,6 +104,7 @@ const UpdateBudgetInput = z.object({
   budget_id: z.string().regex(UUID_LIKE, 'Invalid budget id'),
   drop_off: NonNegNumber,
   guests: NonNegNumber,
+  tix_tax: NonNegNumber,
   deductions: NonNegNumber,
   sponsor_income: NonNegNumber,
   vendor_income: NonNegNumber,
@@ -220,6 +222,7 @@ export async function updateBudget(
     .update({
       drop_off: data.drop_off,
       guests: data.guests,
+      tix_tax: data.tix_tax,
       deductions: data.deductions,
       sponsor_income: data.sponsor_income,
       vendor_income: data.vendor_income,
@@ -437,7 +440,7 @@ export async function actualizeEvent(
   const { data: estBudget, error: ebErr } = await admin
     .from('event_budgets')
     .select(
-      'id, drop_off, guests, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
+      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
     )
     .eq('event_id', event_id)
     .eq('budget_type', 'estimated')
@@ -481,6 +484,7 @@ export async function actualizeEvent(
       created_by: profile.id,
       drop_off: estBudget.drop_off,
       guests: estBudget.guests,
+      tix_tax: estBudget.tix_tax,
       deductions: estBudget.deductions,
       sponsor_income: estBudget.sponsor_income,
       vendor_income: estBudget.vendor_income,

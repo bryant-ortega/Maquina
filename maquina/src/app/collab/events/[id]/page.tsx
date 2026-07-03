@@ -71,7 +71,7 @@ export default async function CollabEventDetailPage({
   const { data: estBudget } = await supabase
     .from('event_budgets')
     .select(
-      'id, drop_off, guests, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
+      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct'
     )
     .eq('event_id', id)
     .eq('budget_type', 'estimated')
@@ -96,6 +96,7 @@ export default async function CollabEventDetailPage({
       })),
       drop_off: Number(estBudget.drop_off ?? 0),
       guests: Number(estBudget.guests ?? 0),
+      tix_tax: Number(estBudget.tix_tax ?? 0),
       deductions: Number(estBudget.deductions ?? 0),
       sponsor_income: Number(estBudget.sponsor_income ?? 0),
       vendor_income: Number(estBudget.vendor_income ?? 0),
@@ -272,6 +273,12 @@ export default async function CollabEventDetailPage({
                     label="Gross ticket sales"
                     value={formatUSD(budgetSummary.gross_tix_total)}
                   />
+                  {budgetSummary.tix_tax > 0 && (
+                    <SummaryRow
+                      label="Net ticket sales (after tax)"
+                      value={formatUSD(budgetSummary.net_tix_total)}
+                    />
+                  )}
                   <SummaryRow
                     label="Walkout"
                     value={formatUSD(budgetSummary.walkout)}
