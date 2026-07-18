@@ -1055,6 +1055,16 @@ function SummaryCard({
           value={formatUSDCents(summary.net_merch)}
           tone={summary.net_merch >= 0 ? undefined : 'negative'}
         />
+        <Mini
+          label="Sponsor income"
+          value={formatUSDCents(summary.sponsor_income)}
+          muted={summary.sponsor_income === 0}
+        />
+        <Mini
+          label="Vendor income"
+          value={formatUSDCents(summary.vendor_income)}
+          muted={summary.vendor_income === 0}
+        />
       </div>
     </div>
   )

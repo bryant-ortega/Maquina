@@ -123,6 +123,12 @@ export type BudgetSummary = {
   merch_seller_fee: number
   net_merch: number
   walkout: number
+  /** Pass-through of the flat sponsor/vendor income inputs. Both fold
+   *  into est_income; surfaced here too so UI summaries can show them
+   *  as their own line instead of leaving them invisible inside the
+   *  est_income total. */
+  sponsor_income: number
+  vendor_income: number
   est_income: number
   est_expenses: number
   est_profit: number
@@ -203,6 +209,8 @@ export function computeBudget(input: BudgetInputs): BudgetSummary {
     merch_seller_fee,
     net_merch,
     walkout,
+    sponsor_income,
+    vendor_income,
     est_income,
     est_expenses,
     est_profit,

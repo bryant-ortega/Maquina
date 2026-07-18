@@ -396,6 +396,26 @@ export function BudgetPDF({
         <Text style={styles.sectionTitle}>Summary</Text>
         <View style={styles.sectionRule} />
 
+        {summary.sponsor_income > 0 && (
+          <View style={styles.tableRow}>
+            <Text style={[styles.tableCellMuted, { flex: 1 }]}>
+              Sponsor income
+            </Text>
+            <Text style={[styles.numCell, { width: 220 }]}>
+              {formatUSD(summary.sponsor_income)}
+            </Text>
+          </View>
+        )}
+        {summary.vendor_income > 0 && (
+          <View style={styles.tableRow}>
+            <Text style={[styles.tableCellMuted, { flex: 1 }]}>
+              Vendor income
+            </Text>
+            <Text style={[styles.numCell, { width: 220 }]}>
+              {formatUSD(summary.vendor_income)}
+            </Text>
+          </View>
+        )}
         <View style={styles.tableRow}>
           <Text style={[styles.tableCell, { flex: 1 }]}>Income</Text>
           <Text style={[styles.numCell, { width: 220 }]}>

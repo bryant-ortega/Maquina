@@ -225,6 +225,20 @@ function SummarySection({
             format: 'usd',
           },
           {
+            label: 'Sponsor income',
+            est: est.sponsor_income,
+            fin: fin.sponsor_income,
+            betterWhen: 'higher',
+            format: 'usd',
+          },
+          {
+            label: 'Vendor income',
+            est: est.vendor_income,
+            fin: fin.vendor_income,
+            betterWhen: 'higher',
+            format: 'usd',
+          },
+          {
             label: 'Walkout',
             est: est.walkout,
             fin: fin.walkout,
