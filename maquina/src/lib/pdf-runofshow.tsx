@@ -57,7 +57,7 @@ export async function renderRunOfShowPdf({
     sb
       .from('events')
       .select(
-        'id, event_id, title, date, city, state, doors_time, end_time, losgoths_load_in_time, dj_load_in_time'
+        'id, event_id, title, date, city, state, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, venues(name, address)'
       )
       .eq('id', eventId)
       .maybeSingle(),
@@ -77,6 +77,14 @@ export async function renderRunOfShowPdf({
   ])
 
   if (eventErr || !event) return { ok: false, reason: 'not_found' }
+
+  // Supabase returns the venues join as an object for a to-one FK, but
+  // types it as an array in some client versions — handle both shapes.
+  const venueRaw = event.venues as
+    | { name: string; address: string | null }
+    | { name: string; address: string | null }[]
+    | null
+  const venue = Array.isArray(venueRaw) ? venueRaw[0] : venueRaw
 
   const slotsByStage = new Map<string, RunOfShowSlot[]>()
   for (const raw of slots ?? []) {
@@ -126,6 +134,8 @@ export async function renderRunOfShowPdf({
         state: (event.state as string) ?? '',
         doorsLabel: event.doors_time ? formatHHMM12(doorsMin) : '—',
         endLabel: endUsable ? formatHHMM12(endMin) : '—',
+        venueName: venue?.name ?? null,
+        venueAddress: venue?.address ?? null,
       }}
       stages={stagePayload}
       generatedAt={new Date().toISOString()}

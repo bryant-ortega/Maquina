@@ -4,7 +4,7 @@
  *
  * Mirrors what the on-screen /events/[id]/runofshow page shows:
  *   - LosGothsCo header band
- *   - Event meta (title · date · city, state · doors / end)
+ *   - Event meta (title · venue · address · date · city, state · doors / end)
  *   - One section per stage, with a Time/Label two-column table
  *   - Doors row visually emphasized (matches the on-screen highlight)
  *
@@ -36,6 +36,10 @@ export type RunOfShowPDFProps = {
     state: string
     doorsLabel: string // pre-formatted, e.g. '9:00 PM'
     endLabel: string // pre-formatted, may be '—'
+    /** Venue name, or null when the event has no venue on file. */
+    venueName?: string | null
+    /** Street address, or null when the event/venue has none on file. */
+    venueAddress?: string | null
   }
   stages: Array<{
     stageNumber: number
@@ -70,6 +74,11 @@ const rosStyles = StyleSheet.create({
   subtitle: {
     ...styles.subtitle,
     fontSize: 10 * ROS_SCALE,
+  },
+  venueName: {
+    ...styles.subtitle,
+    fontSize: 11 * ROS_SCALE,
+    fontWeight: 700,
   },
   sectionTitle: {
     ...styles.sectionTitle,
@@ -187,6 +196,12 @@ export function RunOfShowPDF({
         <Text style={rosStyles.subtitle}>
           {formatDate(event.date)} · {event.city}, {event.state}
         </Text>
+        {event.venueName ? (
+          <Text style={rosStyles.venueName}>{event.venueName}</Text>
+        ) : null}
+        {event.venueAddress ? (
+          <Text style={rosStyles.subtitle}>{event.venueAddress}</Text>
+        ) : null}
         <Text style={[rosStyles.subtitle, { marginBottom: 16 }]}>
           Doors {event.doorsLabel} · End {event.endLabel}
         </Text>
