@@ -259,10 +259,18 @@ export function buildSchedule(
     // admin chose this time explicitly.
     if (slot.start_time) {
       const customMin = parseHHMM(slot.start_time)
-      // If the override falls before doors and the event wraps past
-      // midnight, normalize forward by 1440 so it sorts after doors.
+      // If the override falls in the early-morning window before the
+      // (wrapped) end time, it's an after-midnight slot on the next
+      // calendar day — normalize forward by 1440 so it sorts after doors
+      // and before end. A raw "< doors" check alone isn't enough: any
+      // same-evening pre-doors time (e.g. 9:00 PM with doors at 9:30 PM)
+      // is also numerically less than doors, but it isn't after midnight
+      // and must NOT be shifted, or it wrongly sorts to the very end of
+      // the schedule (the bug Chase saw with "LosGothsCo. DJs").
       const minutes =
-        end > 1440 && customMin < doors ? customMin + 1440 : customMin
+        end > 1440 && customMin < doors && customMin <= end - 1440
+          ? customMin + 1440
+          : customMin
       rows.push({
         minutes,
         time: formatHHMM12(minutes),
