@@ -27,7 +27,7 @@ export default async function VendorProfilePage() {
   if (profile?.roles?.includes('dj') && !profile?.roles?.includes('vendor')) redirect('/dj/profile')
   if (!profile?.roles?.includes('vendor')) redirect('/login')
 
-  const roles: string[] = (profile as any)?.roles ?? []
+  const roles: string[] = profile?.roles ?? []
 
   const { data: vendor } = await supabase
     .from('vendors')

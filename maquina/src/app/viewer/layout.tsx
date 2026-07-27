@@ -41,7 +41,7 @@ export default async function ViewerLayout({
     .eq('user_id', user.id)
     .maybeSingle()
 
-  const roles: string[] = (profile as any)?.roles ?? []
+  const roles: string[] = profile?.roles ?? []
   const hasViewerRole = roles.includes('viewer')
   if (!hasViewerRole && !roles.includes('admin')) {
     // DJ / collab / unknown — punt to /dj/profile, the existing

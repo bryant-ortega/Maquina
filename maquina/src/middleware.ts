@@ -41,6 +41,7 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute =
     path.startsWith('/events') ||
     path.startsWith('/djs') ||
+    path.startsWith('/vendors') ||
     path.startsWith('/settings')
 
   if (isAdminRoute && !user) {
