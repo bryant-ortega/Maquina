@@ -15,8 +15,6 @@ import {
   MERCH_PCT_AFTER_FEES,
   MERCH_COGS_PCT,
   MERCH_SELLER_FEE,
-  CHASE_SHARE_PCT,
-  ELVIS_SHARE_PCT,
 } from '@/lib/budget'
 import { updateBudget, type UpdateBudgetResult } from './actions'
 
@@ -108,6 +106,8 @@ export type BudgetFormProps = {
     merch_seller_fee: number
     bar_per_head: number
     bar_pct: number
+    chase_share_pct: number
+    elvis_share_pct: number
     chase_payment_status: PaymentStatus
     chase_payment_method: string
     elvis_payment_status: PaymentStatus
@@ -204,7 +204,15 @@ export function BudgetForm({
     String(budget.bar_pct * 100)
   )
 
-  // Partner profit-split payout tracking — Final budget only in the UI.
+  // Partner profit-split — Final budget only in the UI. Stored as 0..1 in
+  // the DB (defaults 0.4 / 0.6); surfaced as 0..100 for editing, same
+  // convention as the merch/bar percent fields above.
+  const [chaseSharePct, setChaseSharePct] = useState<string>(
+    String(budget.chase_share_pct * 100)
+  )
+  const [elvisSharePct, setElvisSharePct] = useState<string>(
+    String(budget.elvis_share_pct * 100)
+  )
   const [chasePaymentStatus, setChasePaymentStatus] = useState<PaymentStatus>(
     budget.chase_payment_status
   )
@@ -391,6 +399,8 @@ export function BudgetForm({
       merch_seller_fee: Number(merchSellerFee) || 0,
       bar_per_head: Number(barPerHead) || 0,
       bar_pct: (Number(barPct) || 0) / 100,
+      chase_share_pct: (Number(chaseSharePct) || 0) / 100,
+      elvis_share_pct: (Number(elvisSharePct) || 0) / 100,
       chase_payment_status: chasePaymentStatus,
       chase_payment_method: chasePaymentMethod.trim(),
       elvis_payment_status: elvisPaymentStatus,
@@ -990,8 +1000,9 @@ export function BudgetForm({
               Profit split
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Fixed org split of final profit ({formatUSD(summary.est_profit)}
-              ). Track payout status here once each partner is paid.
+              Split of final profit ({formatUSD(summary.est_profit)}).
+              Defaults to 40% / 60%, editable per event. Track payout status
+              here once each partner is paid.
             </p>
           </header>
 
@@ -1000,7 +1011,7 @@ export function BudgetForm({
               <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 <tr className="border-b border-zinc-100 dark:border-zinc-900">
                   <th className="px-4 py-2 font-medium">Partner</th>
-                  <th className="w-20 px-4 py-2 font-medium">Share</th>
+                  <th className="w-24 px-4 py-2 font-medium">Share %</th>
                   <th className="w-28 px-4 py-2 font-medium">Amount</th>
                   <th className="w-28 px-4 py-2 font-medium">Paid</th>
                   <th className="w-40 px-4 py-2 font-medium">Method</th>
@@ -1009,8 +1020,10 @@ export function BudgetForm({
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
                 <PartnerRow
                   name="Chase"
-                  pct={CHASE_SHARE_PCT}
-                  amount={summary.est_profit * CHASE_SHARE_PCT}
+                  pctValue={chaseSharePct}
+                  onPctChange={setChaseSharePct}
+                  pctError={fieldErrors.chase_share_pct}
+                  amount={summary.est_profit * ((Number(chaseSharePct) || 0) / 100)}
                   status={chasePaymentStatus}
                   onStatusChange={(next) => {
                     setChasePaymentStatus(next)
@@ -1021,8 +1034,10 @@ export function BudgetForm({
                 />
                 <PartnerRow
                   name="Elvis"
-                  pct={ELVIS_SHARE_PCT}
-                  amount={summary.est_profit * ELVIS_SHARE_PCT}
+                  pctValue={elvisSharePct}
+                  onPctChange={setElvisSharePct}
+                  pctError={fieldErrors.elvis_share_pct}
+                  amount={summary.est_profit * ((Number(elvisSharePct) || 0) / 100)}
                   status={elvisPaymentStatus}
                   onStatusChange={(next) => {
                     setElvisPaymentStatus(next)
@@ -1271,7 +1286,9 @@ function NumberField({
 /** One row in the Final-budget "Profit split" table (Chase / Elvis). */
 function PartnerRow({
   name,
-  pct,
+  pctValue,
+  onPctChange,
+  pctError,
   amount,
   status,
   onStatusChange,
@@ -1279,7 +1296,9 @@ function PartnerRow({
   onMethodChange,
 }: {
   name: string
-  pct: number
+  pctValue: string
+  onPctChange: (next: string) => void
+  pctError?: string
   amount: number
   status: PaymentStatus
   onStatusChange: (next: PaymentStatus) => void
@@ -1291,8 +1310,17 @@ function PartnerRow({
       <td className="px-4 py-2 font-medium text-zinc-900 dark:text-zinc-100">
         {name}
       </td>
-      <td className="px-4 py-2 text-zinc-700 tabular-nums dark:text-zinc-300">
-        {Math.round(pct * 100)}%
+      <td className="px-4 py-2">
+        <input
+          type="number"
+          inputMode="decimal"
+          min={0}
+          max={100}
+          step="0.1"
+          value={pctValue}
+          onChange={(e) => onPctChange(e.target.value)}
+          className={`w-20 ${inputClass(pctError)}`}
+        />
       </td>
       <td className="px-4 py-2 text-zinc-700 tabular-nums dark:text-zinc-300">
         {formatUSDCents(amount)}

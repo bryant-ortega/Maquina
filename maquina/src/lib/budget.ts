@@ -45,11 +45,15 @@ export const MERCH_SELLER_FEE = 120
 // Partner profit split — Final budget only.
 // ---------------------------------------------------------------------------
 
-/** Chase's fixed share of final profit. Not per-event editable. */
-export const CHASE_SHARE_PCT = 0.4
+/**
+ * Default share of final profit seeded onto new event_budgets rows.
+ * Editable per Final budget from here on (migration 0025) — these are
+ * just the fallback used to bootstrap new rows / the UI default.
+ */
+export const CHASE_SHARE_PCT_DEFAULT = 0.4
 
-/** Elvis's fixed share of final profit. Not per-event editable. */
-export const ELVIS_SHARE_PCT = 0.6
+/** Elvis's default share of final profit. Editable per Final budget. */
+export const ELVIS_SHARE_PCT_DEFAULT = 0.6
 
 // ---------------------------------------------------------------------------
 // Budget computation

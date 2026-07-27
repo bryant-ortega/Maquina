@@ -117,9 +117,12 @@ const UpdateBudgetInput = z.object({
   bar_per_head: NonNegNumber,
   bar_pct: Pct0to1,
   // Partner profit-split payout tracking — Final budget only in the UI,
-  // but the field always round-trips (defaults on estimated rows).
-  // Split percentages themselves (Chase 40% / Elvis 60%) are fixed org
-  // constants in lib/budget.ts, not stored per row.
+  // but the fields always round-trip (defaults on estimated rows).
+  // Percentages are editable per budget (migration 0025); defaults live
+  // in lib/budget.ts (CHASE_SHARE_PCT_DEFAULT / ELVIS_SHARE_PCT_DEFAULT)
+  // and only seed new rows.
+  chase_share_pct: Pct0to1,
+  elvis_share_pct: Pct0to1,
   chase_payment_status: z.enum(['unpaid', 'paid']).default('unpaid'),
   chase_payment_method: z.preprocess(
     (v) => {
@@ -271,6 +274,8 @@ export async function updateBudget(
         merch_seller_fee: data.merch_seller_fee,
         bar_per_head: data.bar_per_head,
         bar_pct: data.bar_pct,
+        chase_share_pct: data.chase_share_pct,
+        elvis_share_pct: data.elvis_share_pct,
         chase_payment_status: data.chase_payment_status,
         chase_payment_method: data.chase_payment_method,
         elvis_payment_status: data.elvis_payment_status,

@@ -51,7 +51,7 @@ export default async function BudgetPage({
   const { data: estimated } = await supabase
     .from('event_budgets')
     .select(
-      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct, chase_payment_status, chase_payment_method, elvis_payment_status, elvis_payment_method'
+      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct, chase_share_pct, elvis_share_pct, chase_payment_status, chase_payment_method, elvis_payment_status, elvis_payment_method'
     )
     .eq('event_id', id)
     .eq('budget_type', 'estimated')
@@ -63,7 +63,7 @@ export default async function BudgetPage({
   const { data: finalBudget } = await supabase
     .from('event_budgets')
     .select(
-      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct, chase_payment_status, chase_payment_method, elvis_payment_status, elvis_payment_method'
+      'id, drop_off, guests, tix_tax, deductions, sponsor_income, vendor_income, merch_gross, merch_pct_after_fees, merch_cogs_pct, merch_seller_fee, bar_per_head, bar_pct, chase_share_pct, elvis_share_pct, chase_payment_status, chase_payment_method, elvis_payment_status, elvis_payment_method'
     )
     .eq('event_id', id)
     .eq('budget_type', 'final')
@@ -295,6 +295,8 @@ export default async function BudgetPage({
             merch_seller_fee: Number(activeBudget.merch_seller_fee ?? 120),
             bar_per_head: Number(activeBudget.bar_per_head ?? 24),
             bar_pct: Number(activeBudget.bar_pct ?? 0.16),
+            chase_share_pct: Number(activeBudget.chase_share_pct ?? 0.4),
+            elvis_share_pct: Number(activeBudget.elvis_share_pct ?? 0.6),
             chase_payment_status: normalizePaymentStatus(
               activeBudget.chase_payment_status
             ),
