@@ -105,6 +105,7 @@ export function EditEventForm({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [deleting, startDelete] = useTransition()
+  const [deleteArmed, setDeleteArmed] = useState(false)
   const [topError, setTopError] = useState<string | null>(null)
   const [topSuccess, setTopSuccess] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -401,14 +402,14 @@ export function EditEventForm({
 
   // ---------------------------------------------------------------- Render
 
+  // Mobile fix (2026-07-26): window.confirm() is silently suppressed
+  // inside iOS home-screen (PWA) contexts and most in-app browsers, so
+  // `if (!confirm(...)) return` used to no-op the tap on mobile with no
+  // dialog ever shown. Two-tap inline confirm (armed state) works the
+  // same everywhere. See view-toolbar.tsx / email-button.tsx for the
+  // same fix applied elsewhere.
   function handleDelete() {
-    if (
-      !confirm(
-        `Delete "${title || initial.title}"? This permanently removes the event, its stages, slots, budget, and any collaborators. This can't be undone.`
-      )
-    ) {
-      return
-    }
+    setDeleteArmed(false)
     startDelete(async () => {
       const result = await deleteEvent({ event_id: initial.id })
       // deleteEvent calls redirect() on success — control should never
@@ -995,14 +996,39 @@ export function EditEventForm({
         >
           {pending ? 'Saving…' : 'Save changes'}
         </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={pending || deleting}
-          className="ml-auto rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/60 dark:bg-zinc-950 dark:text-rose-300 dark:hover:bg-rose-950/40"
-        >
-          {deleting ? 'Deleting…' : 'Delete event'}
-        </button>
+        {deleteArmed ? (
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5 text-right">
+            <span className="text-xs text-rose-700 dark:text-rose-300">
+              Permanently delete &quot;{title || initial.title}&quot;? This
+              removes stages, slots, budget, and collaborators too.
+            </span>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={pending || deleting}
+              className="rounded-md border border-rose-200 bg-rose-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/60 dark:bg-rose-700 dark:hover:bg-rose-600"
+            >
+              {deleting ? 'Deleting…' : 'Confirm delete'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteArmed(false)}
+              disabled={pending || deleting}
+              className="rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setDeleteArmed(true)}
+            disabled={pending || deleting}
+            className="ml-auto rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/60 dark:bg-zinc-950 dark:text-rose-300 dark:hover:bg-rose-950/40"
+          >
+            Delete event
+          </button>
+        )}
         {topSuccess && (
           <span className="text-xs text-emerald-600 dark:text-emerald-400">
             ✓ {topSuccess}

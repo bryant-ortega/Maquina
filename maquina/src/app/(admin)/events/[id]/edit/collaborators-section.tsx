@@ -41,6 +41,7 @@ export function CollaboratorsSection({
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [armedId, setArmedId] = useState<string | null>(null)
 
   function handleAdd(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -82,8 +83,14 @@ export function CollaboratorsSection({
     })
   }
 
+  // Mobile fix (2026-07-26): window.confirm() is silently suppressed
+  // inside iOS home-screen (PWA) contexts and most in-app browsers, so
+  // `if (!confirm(...)) return` used to no-op the tap on mobile with no
+  // dialog ever shown. Two-tap inline confirm (armedId state) works the
+  // same everywhere. See view-toolbar.tsx / email-button.tsx for the
+  // same fix applied elsewhere.
   function handleRemove(id: string) {
-    if (!confirm('Remove this collaborator from the event?')) return
+    setArmedId(null)
     setError(null)
     setNotice(null)
     startTransition(async () => {
@@ -138,14 +145,35 @@ export function CollaboratorsSection({
                   })}
                 </p>
               </div>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => handleRemove(row.id)}
-                className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
-              >
-                Remove
-              </button>
+              {armedId === row.id ? (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => handleRemove(row.id)}
+                    className="rounded-md border border-rose-200 bg-rose-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/60 dark:bg-rose-700 dark:hover:bg-rose-600"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => setArmedId(null)}
+                    className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setArmedId(row.id)}
+                  className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                >
+                  Remove
+                </button>
+              )}
             </li>
           ))}
         </ul>

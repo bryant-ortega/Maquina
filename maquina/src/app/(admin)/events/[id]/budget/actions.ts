@@ -216,37 +216,66 @@ export async function updateBudget(
     }
   }
 
-  // 6. Update the per-event scalars on event_budgets.
-  const { error: scalarErr } = await admin
-    .from('event_budgets')
-    .update({
-      drop_off: data.drop_off,
-      guests: data.guests,
-      tix_tax: data.tix_tax,
-      deductions: data.deductions,
-      sponsor_income: data.sponsor_income,
-      vendor_income: data.vendor_income,
-      merch_gross: data.merch_gross,
-      merch_pct_after_fees: data.merch_pct_after_fees,
-      merch_cogs_pct: data.merch_cogs_pct,
-      merch_seller_fee: data.merch_seller_fee,
-      bar_per_head: data.bar_per_head,
-      bar_pct: data.bar_pct,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', data.budget_id)
-  if (scalarErr) {
-    return { ok: false, reason: 'db_failed', message: scalarErr.message }
-  }
+  // 6-8. Performance note (2026-07-27): this used to be one sequential
+  // `await` per expense/tier row — a budget with 20-30 line items meant
+  // 20-30+ round trips to Postgres, one after another, before the save
+  // finished. None of those calls actually depend on each other's
+  // results, so they're batched into three parallel "waves" instead:
+  // wave 1 is the scalar update + both diff selects, wave 2 is the
+  // deletes (still ordered before wave 3, since tier deletes must land
+  // before tier inserts/updates to avoid a transient UNIQUE
+  // (budget_id, tier_number) collision on a tier-number swap), and
+  // wave 3 batches every remaining update/insert into one upsert (for
+  // existing rows, matched by primary key) and one insert (for new rows)
+  // per table. Net effect: a handful of requests regardless of row
+  // count, with identical validation, writes, and error handling as
+  // before — just concurrent instead of serial. No infra change, no
+  // new dependency, works fine on Supabase's free tier.
 
-  // 7. Diff expenses against what's currently in the DB.
-  const { data: dbExpenses, error: deErr } = await admin
-    .from('event_budget_expenses')
-    .select('id')
-    .eq('budget_id', data.budget_id)
-  if (deErr) {
-    return { ok: false, reason: 'db_failed', message: deErr.message }
+  // Wave 1: scalar update on event_budgets, plus both diff selects.
+  const [scalarRes, dbExpensesRes, dbTiersRes] = await Promise.all([
+    admin
+      .from('event_budgets')
+      .update({
+        drop_off: data.drop_off,
+        guests: data.guests,
+        tix_tax: data.tix_tax,
+        deductions: data.deductions,
+        sponsor_income: data.sponsor_income,
+        vendor_income: data.vendor_income,
+        merch_gross: data.merch_gross,
+        merch_pct_after_fees: data.merch_pct_after_fees,
+        merch_cogs_pct: data.merch_cogs_pct,
+        merch_seller_fee: data.merch_seller_fee,
+        bar_per_head: data.bar_per_head,
+        bar_pct: data.bar_pct,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', data.budget_id),
+    admin
+      .from('event_budget_expenses')
+      .select('id')
+      .eq('budget_id', data.budget_id),
+    admin
+      .from('event_tix_tiers')
+      .select('id')
+      .eq('budget_id', data.budget_id),
+  ])
+  if (scalarRes.error) {
+    return { ok: false, reason: 'db_failed', message: scalarRes.error.message }
   }
+  if (dbExpensesRes.error) {
+    return {
+      ok: false,
+      reason: 'db_failed',
+      message: dbExpensesRes.error.message,
+    }
+  }
+  if (dbTiersRes.error) {
+    return { ok: false, reason: 'db_failed', message: dbTiersRes.error.message }
+  }
+  const dbExpenses = dbExpensesRes.data
+  const dbTiers = dbTiersRes.data
 
   const formExpenseIds = new Set(
     data.expenses.map((e) => e.id).filter((x): x is string => !!x)
@@ -254,109 +283,120 @@ export async function updateBudget(
   const expensesToDelete = (dbExpenses ?? []).filter(
     (e) => !formExpenseIds.has(e.id as string)
   )
-  if (expensesToDelete.length > 0) {
-    const { error: delErr } = await admin
-      .from('event_budget_expenses')
-      .delete()
-      .in(
-        'id',
-        expensesToDelete.map((e) => e.id as string)
-      )
-    if (delErr) {
-      return { ok: false, reason: 'db_failed', message: delErr.message }
-    }
-  }
-
-  for (const ex of data.expenses) {
-    if (ex.id) {
-      // Update existing row.
-      const { error: uErr } = await admin
-        .from('event_budget_expenses')
-        .update({
-          category: ex.category,
-          item: ex.item,
-          qty: ex.qty,
-          price: ex.price,
-          payment_status: ex.payment_status,
-          payment_method: ex.payment_method,
-        })
-        .eq('id', ex.id)
-      if (uErr) {
-        return { ok: false, reason: 'db_failed', message: uErr.message }
-      }
-    } else {
-      // Insert new row.
-      const { error: iErr } = await admin
-        .from('event_budget_expenses')
-        .insert({
-          budget_id: data.budget_id,
-          category: ex.category,
-          item: ex.item,
-          qty: ex.qty,
-          price: ex.price,
-          payment_status: ex.payment_status,
-          payment_method: ex.payment_method,
-        })
-      if (iErr) {
-        return { ok: false, reason: 'db_failed', message: iErr.message }
-      }
-    }
-  }
-
-  // 8. Diff tiers. Same strategy as expenses, but enforce 0..8 tiers.
-  const { data: dbTiers, error: dtErr } = await admin
-    .from('event_tix_tiers')
-    .select('id')
-    .eq('budget_id', data.budget_id)
-  if (dtErr) {
-    return { ok: false, reason: 'db_failed', message: dtErr.message }
-  }
-
   const formTierIds = new Set(
     data.tiers.map((t) => t.id).filter((x): x is string => !!x)
   )
   const tiersToDelete = (dbTiers ?? []).filter(
     (t) => !formTierIds.has(t.id as string)
   )
-  if (tiersToDelete.length > 0) {
-    const { error: delErr } = await admin
-      .from('event_tix_tiers')
-      .delete()
-      .in(
-        'id',
-        tiersToDelete.map((t) => t.id as string)
-      )
-    if (delErr) {
-      return { ok: false, reason: 'db_failed', message: delErr.message }
-    }
+
+  // Wave 2: deletes for both tables, in parallel with each other, but
+  // fully awaited before wave 3 writes anything.
+  const [expDelRes, tierDelRes] = await Promise.all([
+    expensesToDelete.length > 0
+      ? admin
+          .from('event_budget_expenses')
+          .delete()
+          .in('id', expensesToDelete.map((e) => e.id as string))
+      : Promise.resolve({ error: null }),
+    tiersToDelete.length > 0
+      ? admin
+          .from('event_tix_tiers')
+          .delete()
+          .in('id', tiersToDelete.map((t) => t.id as string))
+      : Promise.resolve({ error: null }),
+  ])
+  if (expDelRes.error) {
+    return { ok: false, reason: 'db_failed', message: expDelRes.error.message }
+  }
+  if (tierDelRes.error) {
+    return { ok: false, reason: 'db_failed', message: tierDelRes.error.message }
   }
 
-  // Tier inserts/updates run after deletes so we don't ever briefly have
-  // two tiers with the same tier_number for one budget (would violate the
-  // UNIQUE constraint).
-  for (const t of data.tiers) {
-    if (t.id) {
-      const { error: uErr } = await admin
-        .from('event_tix_tiers')
-        .update({
-          tier_number: t.tier_number,
-          price: t.price,
-          sold: t.sold,
-        })
-        .eq('id', t.id)
-      if (uErr) {
-        return { ok: false, reason: 'db_failed', message: uErr.message }
-      }
-    } else {
-      const { error: iErr } = await admin.from('event_tix_tiers').insert({
-        budget_id: data.budget_id,
-        tier_number: t.tier_number,
-        price: t.price,
-        sold: t.sold,
-      })
-      if (iErr) {
-        return { ok: false, reason: 'db_failed', message: iErr.message }
-      }
+  // Wave 3: batched upsert (existing rows, matched by id) + batched
+  // insert (new rows) for both tables, all in parallel.
+  const expensesToUpdate = data.expenses.filter((e) => e.id)
+  const expensesToInsert = data.expenses.filter((e) => !e.id)
+  const tiersToUpdate = data.tiers.filter((t) => t.id)
+  const tiersToInsert = data.tiers.filter((t) => !t.id)
+
+  const [expUpsertRes, expInsertRes, tierUpsertRes, tierInsertRes] =
+    await Promise.all([
+      expensesToUpdate.length > 0
+        ? admin.from('event_budget_expenses').upsert(
+            expensesToUpdate.map((e) => ({
+              id: e.id,
+              budget_id: data.budget_id,
+              category: e.category,
+              item: e.item,
+              qty: e.qty,
+              price: e.price,
+              payment_status: e.payment_status,
+              payment_method: e.payment_method,
+            }))
+          )
+        : Promise.resolve({ error: null }),
+      expensesToInsert.length > 0
+        ? admin.from('event_budget_expenses').insert(
+            expensesToInsert.map((e) => ({
+              budget_id: data.budget_id,
+              category: e.category,
+              item: e.item,
+              qty: e.qty,
+              price: e.price,
+              payment_status: e.payment_status,
+              payment_method: e.payment_method,
+            }))
+          )
+        : Promise.resolve({ error: null }),
+      tiersToUpdate.length > 0
+        ? admin.from('event_tix_tiers').upsert(
+            tiersToUpdate.map((t) => ({
+              id: t.id,
+              budget_id: data.budget_id,
+              tier_number: t.tier_number,
+              price: t.price,
+              sold: t.sold,
+            }))
+          )
+        : Promise.resolve({ error: null }),
+      tiersToInsert.length > 0
+        ? admin.from('event_tix_tiers').insert(
+            tiersToInsert.map((t) => ({
+              budget_id: data.budget_id,
+              tier_number: t.tier_number,
+              price: t.price,
+              sold: t.sold,
+            }))
+          )
+        : Promise.resolve({ error: null }),
+    ])
+  if (expUpsertRes.error) {
+    return {
+      ok: false,
+      reason: 'db_failed',
+      message: expUpsertRes.error.message,
+    }
+  }
+  if (expInsertRes.error) {
+    return {
+      ok: false,
+      reason: 'db_failed',
+      message: expInsertRes.error.message,
+    }
+  }
+  if (tierUpsertRes.error) {
+    return {
+      ok: false,
+      reason: 'db_failed',
+      message: tierUpsertRes.error.message,
+    }
+  }
+  if (tierInsertRes.error) {
+    return {
+      ok: false,
+      reason: 'db_failed',
+      message: tierInsertRes.error.message,
     }
   }
 

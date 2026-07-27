@@ -24,6 +24,18 @@ import { actualizeEvent } from './actions'
  * (no full nav on toggle) and the Actualize action needs a transition
  * spinner. The tabs are rendered as <Link> so middle-click / cmd-click
  * still open in a new tab.
+ *
+ * Mobile fix (2026-07-26): this used to gate the actualize call behind
+ * `window.confirm()`. Native confirm/alert/prompt dialogs are suppressed
+ * entirely inside iOS home-screen (PWA) contexts and inside most in-app
+ * browsers (Instagram/FB/TikTok/SMS link previews) — `confirm()` just
+ * returns `undefined` with no dialog ever shown. Since the old code did
+ * `if (!confirm(...)) return`, a suppressed dialog is falsy and the tap
+ * silently no-ops. Desktop browsers always support confirm(), so the bug
+ * only showed up on mobile (same root cause fixed in
+ * runofshow/email-button.tsx on 2026-07-17). Replaced with an inline
+ * two-tap confirm built from React state, which works identically
+ * everywhere.
  */
 export function ViewToolbar({
   eventId,
@@ -37,16 +49,11 @@ export function ViewToolbar({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [armed, setArmed] = useState(false)
 
   function actualize() {
+    setArmed(false)
     setError(null)
-    if (
-      !confirm(
-        'Actualize this event? This creates a Final budget pre-populated from the Estimated budget. You can edit actuals on the Final tab afterward.'
-      )
-    ) {
-      return
-    }
     startTransition(async () => {
       const result = await actualizeEvent({ event_id: eventId })
       if (!result.ok) {
@@ -87,18 +94,43 @@ export function ViewToolbar({
         />
       </nav>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-3">
         {error ? (
           <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
         ) : null}
-        {hasFinal ? null : (
+        {hasFinal ? null : armed ? (
+          <div className="flex flex-wrap items-center justify-end gap-1.5 text-right">
+            <span className="text-[11px] text-zinc-600 dark:text-zinc-400">
+              Create a Final budget from the Estimated one?
+            </span>
+            <button
+              type="button"
+              onClick={actualize}
+              disabled={pending}
+              className="inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-50 transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            >
+              {pending ? 'Actualizing…' : 'Confirm'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setArmed(false)}
+              disabled={pending}
+              className="inline-flex items-center rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={actualize}
+            onClick={() => {
+              setError(null)
+              setArmed(true)
+            }}
             disabled={pending}
             className="inline-flex items-center rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-50 transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
           >
-            {pending ? 'Actualizing…' : 'Actualize event'}
+            Actualize event
           </button>
         )}
       </div>

@@ -60,6 +60,7 @@ export function EditViewForm({
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [deleting, startDelete] = useTransition()
+  const [deleteArmed, setDeleteArmed] = useState(false)
 
   const [name, setName] = useState(view.name)
   const [description, setDescription] = useState(view.description)
@@ -170,14 +171,14 @@ export function EditViewForm({
     })
   }
 
+  // Mobile fix (2026-07-26): window.confirm() is silently suppressed
+  // inside iOS home-screen (PWA) contexts and most in-app browsers, so
+  // `if (!confirm(...)) return` used to no-op the tap on mobile with no
+  // dialog ever shown. Two-tap inline confirm (armed state) works the
+  // same everywhere. See view-toolbar.tsx / email-button.tsx for the
+  // same fix applied elsewhere.
   function onDelete() {
-    if (
-      !confirm(
-        `Delete "${name}"? This can't be undone. Per-event customizations for this view will also be deleted.`
-      )
-    ) {
-      return
-    }
+    setDeleteArmed(false)
     startDelete(async () => {
       const result = await deleteView(view.id)
       // deleteView calls redirect() on success — control should never
@@ -338,15 +339,39 @@ export function EditViewForm({
             </span>
           )}
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={pending || deleting}
-            className="rounded-md border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900/60 dark:bg-zinc-950 dark:text-rose-300 dark:hover:bg-rose-950/40"
-          >
-            {deleting ? 'Deleting…' : 'Delete view'}
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {deleteArmed ? (
+            <>
+              <span className="text-xs text-rose-700 dark:text-rose-300">
+                Delete &quot;{name}&quot;? Per-event customizations go too.
+              </span>
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={pending || deleting}
+                className="rounded-md border border-rose-200 bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700 disabled:opacity-50 dark:border-rose-900/60 dark:bg-rose-700 dark:hover:bg-rose-600"
+              >
+                {deleting ? 'Deleting…' : 'Confirm delete'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteArmed(false)}
+                disabled={pending || deleting}
+                className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDeleteArmed(true)}
+              disabled={pending || deleting}
+              className="rounded-md border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900/60 dark:bg-zinc-950 dark:text-rose-300 dark:hover:bg-rose-950/40"
+            >
+              Delete view
+            </button>
+          )}
           <button
             type="submit"
             disabled={pending || deleting || !name.trim()}
