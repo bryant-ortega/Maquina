@@ -42,6 +42,16 @@ export const MERCH_COGS_PCT = 0.35
 export const MERCH_SELLER_FEE = 120
 
 // ---------------------------------------------------------------------------
+// Partner profit split — Final budget only.
+// ---------------------------------------------------------------------------
+
+/** Chase's fixed share of final profit. Not per-event editable. */
+export const CHASE_SHARE_PCT = 0.4
+
+/** Elvis's fixed share of final profit. Not per-event editable. */
+export const ELVIS_SHARE_PCT = 0.6
+
+// ---------------------------------------------------------------------------
 // Budget computation
 // ---------------------------------------------------------------------------
 

@@ -116,6 +116,28 @@ const UpdateBudgetInput = z.object({
   // Phase 14: per-event bar tunables.
   bar_per_head: NonNegNumber,
   bar_pct: Pct0to1,
+  // Partner profit-split payout tracking — Final budget only in the UI,
+  // but the field always round-trips (defaults on estimated rows).
+  // Split percentages themselves (Chase 40% / Elvis 60%) are fixed org
+  // constants in lib/budget.ts, not stored per row.
+  chase_payment_status: z.enum(['unpaid', 'paid']).default('unpaid'),
+  chase_payment_method: z.preprocess(
+    (v) => {
+      if (v === null || v === undefined) return null
+      const s = String(v).trim()
+      return s === '' ? null : s
+    },
+    z.string().max(80).nullable()
+  ),
+  elvis_payment_status: z.enum(['unpaid', 'paid']).default('unpaid'),
+  elvis_payment_method: z.preprocess(
+    (v) => {
+      if (v === null || v === undefined) return null
+      const s = String(v).trim()
+      return s === '' ? null : s
+    },
+    z.string().max(80).nullable()
+  ),
   expenses: z.array(ExpenseInput).max(200),
   tiers: z.array(TierInput).max(8),
 })
@@ -249,6 +271,10 @@ export async function updateBudget(
         merch_seller_fee: data.merch_seller_fee,
         bar_per_head: data.bar_per_head,
         bar_pct: data.bar_pct,
+        chase_payment_status: data.chase_payment_status,
+        chase_payment_method: data.chase_payment_method,
+        elvis_payment_status: data.elvis_payment_status,
+        elvis_payment_method: data.elvis_payment_method,
         updated_at: new Date().toISOString(),
       })
       .eq('id', data.budget_id),

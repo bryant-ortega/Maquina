@@ -15,6 +15,8 @@ import {
   MERCH_PCT_AFTER_FEES,
   MERCH_COGS_PCT,
   MERCH_SELLER_FEE,
+  CHASE_SHARE_PCT,
+  ELVIS_SHARE_PCT,
 } from '@/lib/budget'
 import { updateBudget, type UpdateBudgetResult } from './actions'
 
@@ -106,6 +108,10 @@ export type BudgetFormProps = {
     merch_seller_fee: number
     bar_per_head: number
     bar_pct: number
+    chase_payment_status: PaymentStatus
+    chase_payment_method: string
+    elvis_payment_status: PaymentStatus
+    elvis_payment_method: string
   }
   initialExpenses: Array<{
     id: string
@@ -196,6 +202,20 @@ export function BudgetForm({
   )
   const [barPct, setBarPct] = useState<string>(
     String(budget.bar_pct * 100)
+  )
+
+  // Partner profit-split payout tracking — Final budget only in the UI.
+  const [chasePaymentStatus, setChasePaymentStatus] = useState<PaymentStatus>(
+    budget.chase_payment_status
+  )
+  const [chasePaymentMethod, setChasePaymentMethod] = useState<string>(
+    budget.chase_payment_method
+  )
+  const [elvisPaymentStatus, setElvisPaymentStatus] = useState<PaymentStatus>(
+    budget.elvis_payment_status
+  )
+  const [elvisPaymentMethod, setElvisPaymentMethod] = useState<string>(
+    budget.elvis_payment_method
   )
 
   // ---------------------------------------------------------------- Derived
@@ -371,6 +391,10 @@ export function BudgetForm({
       merch_seller_fee: Number(merchSellerFee) || 0,
       bar_per_head: Number(barPerHead) || 0,
       bar_pct: (Number(barPct) || 0) / 100,
+      chase_payment_status: chasePaymentStatus,
+      chase_payment_method: chasePaymentMethod.trim(),
+      elvis_payment_status: elvisPaymentStatus,
+      elvis_payment_method: elvisPaymentMethod.trim(),
       expenses: keptExpenses.map((ex) => ({
         id: ex.id || '',
         category: ex.category,
@@ -442,6 +466,7 @@ export function BudgetForm({
         summary={summary}
         splitPct={event.split_pct}
         barIncluded={event.bar_included}
+        isFinal={isFinal}
       />
 
       {/* ----- Expenses by category --------------------------------- */}
@@ -957,11 +982,66 @@ export function BudgetForm({
         </div>
       </section>
 
+      {/* ----- Profit split (Final budget only) ---------------------- */}
+      {isFinal && (
+        <section className="space-y-4">
+          <header>
+            <h2 className="text-lg font-semibold tracking-tight">
+              Profit split
+            </h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Fixed org split of final profit ({formatUSD(summary.est_profit)}
+              ). Track payout status here once each partner is paid.
+            </p>
+          </header>
+
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <tr className="border-b border-zinc-100 dark:border-zinc-900">
+                  <th className="px-4 py-2 font-medium">Partner</th>
+                  <th className="w-20 px-4 py-2 font-medium">Share</th>
+                  <th className="w-28 px-4 py-2 font-medium">Amount</th>
+                  <th className="w-28 px-4 py-2 font-medium">Paid</th>
+                  <th className="w-40 px-4 py-2 font-medium">Method</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
+                <PartnerRow
+                  name="Chase"
+                  pct={CHASE_SHARE_PCT}
+                  amount={summary.est_profit * CHASE_SHARE_PCT}
+                  status={chasePaymentStatus}
+                  onStatusChange={(next) => {
+                    setChasePaymentStatus(next)
+                    if (next === 'unpaid') setChasePaymentMethod('')
+                  }}
+                  method={chasePaymentMethod}
+                  onMethodChange={setChasePaymentMethod}
+                />
+                <PartnerRow
+                  name="Elvis"
+                  pct={ELVIS_SHARE_PCT}
+                  amount={summary.est_profit * ELVIS_SHARE_PCT}
+                  status={elvisPaymentStatus}
+                  onStatusChange={(next) => {
+                    setElvisPaymentStatus(next)
+                    if (next === 'unpaid') setElvisPaymentMethod('')
+                  }}
+                  method={elvisPaymentMethod}
+                  onMethodChange={setElvisPaymentMethod}
+                />
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {/* ----- Save bar --------------------------------------------- */}
       <div className="sticky bottom-4 z-10">
         <div className="flex items-center justify-end gap-3 rounded-xl border border-zinc-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
           <span className="text-sm text-zinc-600 dark:text-zinc-400">
-            Est. profit:{' '}
+            {isFinal ? 'Final' : 'Est.'} profit:{' '}
             <strong
               className={
                 summary.est_profit >= 0
@@ -993,26 +1073,35 @@ function SummaryCard({
   summary,
   splitPct,
   barIncluded,
+  isFinal,
 }: {
   summary: ReturnType<typeof computeBudget>
   splitPct: number
   barIncluded: boolean
+  isFinal: boolean
 }) {
+  // Labels read "Est. X" on the estimated budget and "Final X" once the
+  // event has been actualized — same four stats, just relabeled per Chase's
+  // request so it's obvious at a glance which budget you're looking at.
+  const prefix = isFinal ? 'Final' : 'Est.'
   return (
     <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <SummaryStat label="Est. income" value={formatUSD(summary.est_income)} />
         <SummaryStat
-          label="Est. expenses"
+          label={`${prefix} income`}
+          value={formatUSD(summary.est_income)}
+        />
+        <SummaryStat
+          label={`${prefix} expenses`}
           value={formatUSD(summary.est_expenses)}
         />
         <SummaryStat
-          label="Est. profit"
+          label={`${prefix} profit`}
           value={formatUSD(summary.est_profit)}
           tone={summary.est_profit >= 0 ? 'positive' : 'negative'}
         />
         <SummaryStat
-          label="Walkout"
+          label={`${prefix} walkout`}
           value={formatUSD(summary.walkout)}
           help={`Tix net @ ${splitPct}% + bar − deductions`}
         />
@@ -1176,6 +1265,59 @@ function NumberField({
         </span>
       )}
     </label>
+  )
+}
+
+/** One row in the Final-budget "Profit split" table (Chase / Elvis). */
+function PartnerRow({
+  name,
+  pct,
+  amount,
+  status,
+  onStatusChange,
+  method,
+  onMethodChange,
+}: {
+  name: string
+  pct: number
+  amount: number
+  status: PaymentStatus
+  onStatusChange: (next: PaymentStatus) => void
+  method: string
+  onMethodChange: (next: string) => void
+}) {
+  return (
+    <tr>
+      <td className="px-4 py-2 font-medium text-zinc-900 dark:text-zinc-100">
+        {name}
+      </td>
+      <td className="px-4 py-2 text-zinc-700 tabular-nums dark:text-zinc-300">
+        {Math.round(pct * 100)}%
+      </td>
+      <td className="px-4 py-2 text-zinc-700 tabular-nums dark:text-zinc-300">
+        {formatUSDCents(amount)}
+      </td>
+      <td className="px-4 py-2">
+        <select
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value as PaymentStatus)}
+          className={selectClass(undefined, status)}
+        >
+          <option value="unpaid">Unpaid</option>
+          <option value="paid">Paid</option>
+        </select>
+      </td>
+      <td className="px-4 py-2">
+        <input
+          value={method}
+          onChange={(e) => onMethodChange(e.target.value)}
+          disabled={status === 'unpaid'}
+          placeholder={status === 'unpaid' ? '—' : 'Zelle, cash, check #…'}
+          maxLength={80}
+          className={inputClass()}
+        />
+      </td>
+    </tr>
   )
 }
 
