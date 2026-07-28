@@ -58,7 +58,7 @@ export function ContractRoleToggle({
         htmlFor={`contract-role-${vendorId}`}
         className="text-sm text-zinc-800 dark:text-zinc-200"
       >
-        <span className="font-medium">Contract access</span>
+        <span className="font-medium">Contractor access</span>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Lets this vendor sign in to a read-only view of upcoming
           events at /contract/view — no financials, no editing. Use

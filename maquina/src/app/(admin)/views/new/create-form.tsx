@@ -49,7 +49,7 @@ export function CreateViewForm() {
           maxLength={120}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Contract brief"
+          placeholder="e.g. Contractor brief"
           className={inputClass}
           disabled={pending}
         />
@@ -83,7 +83,7 @@ export function CreateViewForm() {
           disabled={pending}
         >
           <option value="internal">Internal</option>
-          <option value="contract">Contract</option>
+          <option value="contract">Contractor</option>
           <option value="venue">Venue</option>
           <option value="dj">DJ</option>
           <option value="partner">Partner</option>

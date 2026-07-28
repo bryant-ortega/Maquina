@@ -52,7 +52,7 @@ export default async function ContractLayout({
     redirect('/dj/profile')
   }
 
-  const displayName = profile?.display_name ?? user.email ?? 'Contract'
+  const displayName = profile?.display_name ?? user.email ?? 'Contractor'
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -61,7 +61,7 @@ export default async function ContractLayout({
           <div>
             <p className="text-sm font-semibold tracking-tight">MΛQUIИΛ</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              LosGothsCo · Contract
+              LosGothsCo · Contractor
             </p>
           </div>
           <div className="flex items-center gap-3">

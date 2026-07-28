@@ -14,7 +14,7 @@ import Link from 'next/link'
 const ROLE_ROUTES: Record<string, { label: string; href: string }> = {
   admin: { label: 'Admin', href: '/events' },
   viewer: { label: 'Year View', href: '/viewer/year' },
-  contract: { label: 'Contract', href: '/contract/view' },
+  contract: { label: 'Contractor', href: '/contract/view' },
   finance: { label: 'Finance', href: '/finance/events' },
   collab: { label: 'Collab', href: '/collab/events' },
   vendor: { label: 'Vendor Profile', href: '/vendor/profile' },

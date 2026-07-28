@@ -260,11 +260,14 @@ function AudienceBadge({ audience }: { audience: string }) {
             : audience === 'internal'
               ? 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
               : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+  // 'contract' is stored as-is (matches the role slug/RLS/route), but
+  // displays as "Contractor" — friendlier label, per Chase.
+  const label = audience === 'contract' ? 'Contractor' : audience
   return (
     <span
       className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cls}`}
     >
-      {audience}
+      {label}
     </span>
   )
 }

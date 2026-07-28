@@ -65,13 +65,13 @@ export default async function ContractViewPage() {
       <div className="flex-1 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-2xl rounded-md border border-dashed border-zinc-300 bg-white p-8 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
           <h1 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            No contract view available
+            No contractor view available
           </h1>
           <p>
             Your account is set up, but no custom view has been marked
-            for the contract audience yet. Ask the admin to open the
+            for the contractor audience yet. Ask the admin to open the
             View Builder, edit a custom view, and change its{' '}
-            <strong>Audience</strong> dropdown to <em>Contract</em>.
+            <strong>Audience</strong> dropdown to <em>Contractor</em>.
             (Built-in views like Posting Calendar don&apos;t count —
             this page only picks up your own views.)
           </p>

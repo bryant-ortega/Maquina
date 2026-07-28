@@ -233,7 +233,7 @@ export function EditViewForm({
             disabled={pending || deleting}
           >
             <option value="internal">Internal</option>
-            <option value="contract">Contract</option>
+            <option value="contract">Contractor</option>
             <option value="venue">Venue</option>
             <option value="dj">DJ</option>
             <option value="partner">Partner</option>
