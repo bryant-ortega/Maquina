@@ -22,8 +22,15 @@ import { formatUSD } from '@/lib/budget'
  * Data access:
  *   - `views`, `view_fields` are gated by RLS — migration 0020 lets
  *     designers SELECT only rows where audience='designer'.
- *   - `events`, `event_dj_slots`, `djs` get a designer SELECT in 0020.
+ *   - `events`, `event_dj_slots` get a designer SELECT in 0020.
  *   - `venues` was already authenticated-readable (0002).
+ *   - `djs` does NOT have a designer SELECT policy as of migration
+ *     0028 — that row-level grant would have exposed pay/contact
+ *     columns to any designer's REST session, not just `dj_name`.
+ *     DJ names for the lineup come from the `designer_dj_names(uuid[])`
+ *     RPC instead (SECURITY DEFINER, returns only id + dj_name, gated
+ *     to designer/admin callers). Don't reintroduce a `djs(dj_name)`
+ *     embed on this page — it'll silently return null now.
  *
  * Keep this page in sync with /(admin)/views/[id]/page.tsx when the
  * lineup loader or field catalog changes — they're intentionally a
@@ -155,7 +162,7 @@ export default async function DesignerViewPage() {
   if (needsLineup && eventIds.length > 0) {
     const { data: slots } = await supabase
       .from('event_dj_slots')
-      .select('event_id, dj_id, slot_type, slot_order, djs(dj_name)')
+      .select('event_id, dj_id, slot_type, slot_order')
       .in('event_id', eventIds)
 
     type Slot = {
@@ -163,8 +170,25 @@ export default async function DesignerViewPage() {
       dj_id: string
       slot_type: string
       slot_order: number | null
-      djs: { dj_name: string } | { dj_name: string }[] | null
     }
+    const slotRows = (slots ?? []) as Slot[]
+
+    // DJ names come from a SECURITY DEFINER RPC (migration 0028), not
+    // a `djs(dj_name)` embed — designers don't have a row-level SELECT
+    // policy on `djs` anymore, so the embed would silently return null
+    // for every slot. The RPC returns only (id, dj_name) and is gated
+    // to designer/admin callers server-side.
+    const distinctDjIds = [...new Set(slotRows.map((s) => s.dj_id))]
+    const nameById = new Map<string, string>()
+    if (distinctDjIds.length > 0) {
+      const { data: names } = await supabase.rpc('designer_dj_names', {
+        p_dj_ids: distinctDjIds,
+      })
+      for (const row of (names ?? []) as { id: string; dj_name: string }[]) {
+        nameById.set(row.id, row.dj_name)
+      }
+    }
+
     const slotTypePriority: Record<string, number> = {
       headline: 0,
       main_support: 1,
@@ -175,7 +199,7 @@ export default async function DesignerViewPage() {
       close: 6,
     }
     const orderedByEvent = new Map<string, Slot[]>()
-    for (const s of (slots ?? []) as Slot[]) {
+    for (const s of slotRows) {
       const arr = orderedByEvent.get(s.event_id) ?? []
       arr.push(s)
       orderedByEvent.set(s.event_id, arr)
@@ -193,8 +217,7 @@ export default async function DesignerViewPage() {
       let headliner: string | undefined
       for (const s of arr) {
         djIds.add(s.dj_id)
-        const dj = Array.isArray(s.djs) ? s.djs[0] : s.djs
-        const name = dj?.dj_name
+        const name = nameById.get(s.dj_id)
         if (name && !seenNames.has(name)) {
           seenNames.add(name)
           names.push(name)
