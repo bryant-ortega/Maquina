@@ -16,7 +16,9 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
  *
  * Authorization:
  *   - Caller must be authenticated.
- *   - Admins can request any path in the w9s bucket.
+ *   - Admins and finance-role users can request any path in the w9s
+ *     bucket (finance added in migration 0030 — read-only W-9 access
+ *     for bookkeeping).
  *   - DJs can request only paths whose first segment is their own user_id.
  *   - Any other role: 403.
  *
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
   const roles: string[] = profile?.roles ?? []
 
-  if (!roles.includes('admin')) {
+  if (!roles.includes('admin') && !roles.includes('finance')) {
     // DJ self-access: first path segment must equal user.id.
     const ownerSegment = storagePath.split('/')[0]
     if (!roles.includes('dj') || ownerSegment !== user.id) {

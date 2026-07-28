@@ -64,8 +64,11 @@ export async function loginUser(formData: FormData): Promise<LoginResult | never
   if (roles.includes('viewer')) {
     redirect('/viewer/year')
   }
-  if (roles.includes('designer')) {
-    redirect('/designer/view')
+  if (roles.includes('contract')) {
+    redirect('/contract/view')
+  }
+  if (roles.includes('finance')) {
+    redirect('/finance/events')
   }
   if (roles.includes('collab')) {
     redirect('/collab/events')

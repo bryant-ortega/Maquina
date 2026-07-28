@@ -34,6 +34,7 @@ import { deleteEvent, updateEvent, type UpdateEventResult } from './actions'
 
 type Dj = { id: string; dj_name: string; region: string | null }
 type Venue = { id: string; name: string; city: string; state: string }
+type Vendor = { id: string; company_name: string }
 
 type StageRow = {
   uid: string
@@ -91,15 +92,18 @@ export type EditInitial = {
     start_time: string
     end_time: string
   }[]
+  vendor_ids: string[]
 }
 
 export function EditEventForm({
   djs,
   venues,
+  vendors,
   initial,
 }: {
   djs: Dj[]
   venues: Venue[]
+  vendors: Vendor[]
   initial: EditInitial
 }) {
   const router = useRouter()
@@ -167,6 +171,15 @@ export function EditEventForm({
     }))
   )
   const tbdDjId = djs.find((d) => d.dj_name === 'TBD')?.id ?? ''
+
+  // -------- Vendors -------------------------------------------------------
+  const [vendorIds, setVendorIds] = useState<string[]>(initial.vendor_ids)
+
+  function toggleVendor(id: string) {
+    setVendorIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    )
+  }
 
   // -------- Venue autocomplete ------------------------------------------
   const venueSuggestions = useMemo(() => {
@@ -251,6 +264,7 @@ export function EditEventForm({
         start_time: s.start_time,
         end_time: s.end_time,
       })),
+      vendor_ids: vendorIds,
     }
 
     startTransition(async () => {
@@ -984,6 +998,30 @@ export function EditEventForm({
           >
             + Add DJ slot
           </button>
+        )}
+      </Section>
+
+      {/* ---------- Section 7: Vendors ---------- */}
+      <Section
+        title="Vendors"
+        subtitle="Vendors working this event. They'll be added to the Run of Show email recipient list."
+      >
+        {vendors.length === 0 ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            No vendors on roster yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 md:grid-cols-3">
+            {vendors.map((v) => (
+              <Checkbox
+                key={v.id}
+                label={v.company_name}
+                checked={vendorIds.includes(v.id)}
+                onChange={() => toggleVendor(v.id)}
+                disabled={pending}
+              />
+            ))}
+          </div>
         )}
       </Section>
 

@@ -39,7 +39,7 @@ import { FIELDS, FIELD_BY_KEY, defaultFieldSeed } from '@/lib/view-fields'
 
 const AUDIENCES = [
   'internal',
-  'designer',
+  'contract',
   'venue',
   'dj',
   'partner',

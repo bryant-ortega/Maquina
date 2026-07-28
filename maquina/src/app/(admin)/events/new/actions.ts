@@ -135,6 +135,7 @@ const CreateEventInput = z.object({
   // Children
   stages: z.array(StageInput).min(1).max(4),
   slots: z.array(SlotInput).max(36),
+  vendor_ids: z.array(z.string().regex(UUID_LIKE, 'Invalid vendor id')).max(100).default([]),
 })
 
 export type CreateEventValues = z.input<typeof CreateEventInput>
@@ -439,6 +440,20 @@ export async function createEvent(
   ])
   if (tierErr) {
     return { ok: false, reason: 'db_failed', message: tierErr.message }
+  }
+
+  // 3i. INSERT event_vendors (migration 0031) — plain many-to-many, no
+  // rate/time/slot fields like DJs get.
+  if (data.vendor_ids.length > 0) {
+    const { error: vendorLinkErr } = await admin.from('event_vendors').insert(
+      data.vendor_ids.map((vendorId) => ({
+        event_id: eventId,
+        vendor_id: vendorId,
+      }))
+    )
+    if (vendorLinkErr) {
+      return { ok: false, reason: 'db_failed', message: vendorLinkErr.message }
+    }
   }
 
   // 4. Cache invalidation.

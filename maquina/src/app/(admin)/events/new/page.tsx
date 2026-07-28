@@ -10,22 +10,30 @@ import { NewEventForm } from './new-event-form'
  *   - All venues (id + name + city + state) for the find-or-create
  *     autocomplete; the client filters this list to whatever city the
  *     admin is typing
+ *   - Vendor roster (id + company_name) for the vendor multi-select
+ *     (migration 0031) — just a plain checklist, no rate/time/slot
+ *     fields like DJs get
  *
  * Auth gate: handled by the (admin) layout.
  */
 export default async function NewEventPage() {
   const supabase = await createServerSupabaseClient()
 
-  const [{ data: djs }, { data: venues }] = await Promise.all([
-    supabase
-      .from('djs')
-      .select('id, dj_name, region')
-      .order('dj_name', { ascending: true }),
-    supabase
-      .from('venues')
-      .select('id, name, city, state')
-      .order('name', { ascending: true }),
-  ])
+  const [{ data: djs }, { data: venues }, { data: vendors }] =
+    await Promise.all([
+      supabase
+        .from('djs')
+        .select('id, dj_name, region')
+        .order('dj_name', { ascending: true }),
+      supabase
+        .from('venues')
+        .select('id, name, city, state')
+        .order('name', { ascending: true }),
+      supabase
+        .from('vendors')
+        .select('id, company_name')
+        .order('company_name', { ascending: true }),
+    ])
 
   return (
     <div className="flex-1 px-4 py-6 sm:px-8 sm:py-10">
@@ -47,7 +55,11 @@ export default async function NewEventPage() {
           </p>
         </header>
 
-        <NewEventForm djs={djs ?? []} venues={venues ?? []} />
+        <NewEventForm
+          djs={djs ?? []}
+          venues={venues ?? []}
+          vendors={vendors ?? []}
+        />
       </div>
     </div>
   )

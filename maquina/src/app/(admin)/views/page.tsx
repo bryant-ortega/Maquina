@@ -51,7 +51,7 @@ export default async function ViewsIndexPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Views</h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Built-in views are read-only. Build custom views to share
-              event data with designers, venues, DJs, or partners
+              event data with contract users, venues, DJs, or partners
               without exposing internal fields.
             </p>
           </div>
@@ -249,7 +249,7 @@ function SystemBadge() {
 function AudienceBadge({ audience }: { audience: string }) {
   // Tinted by audience so it's easy to scan a long list.
   const cls =
-    audience === 'designer'
+    audience === 'contract'
       ? 'bg-violet-100 text-violet-900 dark:bg-violet-900/40 dark:text-violet-200'
       : audience === 'venue'
         ? 'bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-200'

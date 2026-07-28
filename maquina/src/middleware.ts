@@ -66,10 +66,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/not-found', request.url))
   }
 
-  // /designer/* requires a session. Role enforcement (must be
-  // 'designer' or 'admin') happens in the designer layout — middleware
-  // only ensures someone is signed in before any /designer page renders.
-  if (path.startsWith('/designer') && !user) {
+  // /contract/* requires a session. Role enforcement (must be
+  // 'contract' or 'admin') happens in the contract layout — middleware
+  // only ensures someone is signed in before any /contract page renders.
+  if (path.startsWith('/contract') && !user) {
     return NextResponse.rewrite(new URL('/not-found', request.url))
   }
 

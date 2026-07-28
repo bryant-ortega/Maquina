@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { EditVendorForm } from './edit-form'
 import { W9DownloadButton } from './w9-download'
 import { W9UploadButton } from './w9-upload'
+import { ContractRoleToggle } from './contract-role-toggle'
 
 /**
  * Admin vendor profile. Editable form for every field on the vendors
@@ -28,12 +29,21 @@ export default async function AdminVendorProfilePage({
   const { data: vendor, error } = await supabase
     .from('vendors')
     .select(
-      'id, company_name, contact_name, email, phone, region, pay_method, pay_handle, w9_status, w9_storage_path, registered_at'
+      'id, user_id, company_name, contact_name, email, phone, region, pay_method, pay_handle, w9_status, w9_storage_path, registered_at'
     )
     .eq('id', id)
     .maybeSingle()
 
   if (error || !vendor) notFound()
+
+  // Contract role is stored on the vendor's linked profiles row, not
+  // on vendors itself — see setVendorContractRole in actions.ts.
+  const { data: linkedProfile } = await supabase
+    .from('profiles')
+    .select('roles')
+    .eq('user_id', vendor.user_id)
+    .maybeSingle()
+  const hasContractRole = linkedProfile?.roles?.includes('contract') ?? false
 
   return (
     <div className="flex-1 px-8 py-10">
@@ -113,6 +123,16 @@ export default async function AdminVendorProfilePage({
               pay_handle: vendor.pay_handle ?? '',
               w9_status: vendor.w9_status as 'pending' | 'on_file',
             }}
+          />
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="mb-5 text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Roles
+          </h2>
+          <ContractRoleToggle
+            vendorId={vendor.id}
+            initialEnabled={hasContractRole}
           />
         </section>
       </div>

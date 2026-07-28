@@ -12,6 +12,7 @@ import { CollaboratorsSection, type CollaboratorRow } from './collaborators-sect
  *   - All stages + slots tied to this event (for diff-aware children)
  *   - DJ roster (for the slot DJ dropdown)
  *   - All venues (for the city-filtered autocomplete)
+ *   - Vendor roster + this event's current event_vendors (migration 0031)
  *
  * Auth gate: handled by the (admin) layout.
  */
@@ -30,6 +31,8 @@ export default async function EditEventPage({
     { data: djs },
     { data: venues },
     { data: rawCollaborators },
+    { data: vendors },
+    { data: eventVendors },
   ] = await Promise.all([
     supabase
       .from('events')
@@ -67,6 +70,11 @@ export default async function EditEventPage({
       .select('id, user_id, created_at')
       .eq('event_id', id)
       .order('created_at', { ascending: true }),
+    supabase
+      .from('vendors')
+      .select('id, company_name')
+      .order('company_name', { ascending: true }),
+    supabase.from('event_vendors').select('vendor_id').eq('event_id', id),
   ])
 
   if (eventErr || !event) notFound()
@@ -174,6 +182,7 @@ export default async function EditEventPage({
         <EditEventForm
           djs={djs ?? []}
           venues={venues ?? []}
+          vendors={vendors ?? []}
           initial={{
             id: event.id as string,
             type: event.type as 'club' | 'concert' | 'festival',
@@ -212,6 +221,7 @@ export default async function EditEventPage({
               start_time: trimTime(s.start_time),
               end_time: trimTime(s.end_time),
             })),
+            vendor_ids: (eventVendors ?? []).map((v) => v.vendor_id as string),
           }}
         />
 

@@ -12,6 +12,8 @@ import { renderRunOfShowPdf } from '@/lib/pdf-runofshow'
  *   - The currently signed-in admin (so they have a copy in their
  *     inbox / can audit the send).
  *   - Every DJ slotted on the event whose `djs.email` is set.
+ *   - Every vendor assigned to the event (event_vendors, migration
+ *     0031) whose `vendors.email` is set.
  *   - The event's `advance_contact_email`, if set.
  *
  * Each recipient gets a separate email — no BCC, no shared addressing
@@ -141,10 +143,28 @@ export async function sendRunOfShowEmail(
       return d ?? null
     })
 
+    // Migration 0031: vendors attached to this event. Same join shape
+    // as DJ slots — event_vendors has no per-row fields, just the link.
+    const { data: eventVendors } = await supabase
+      .from('event_vendors')
+      .select('vendors(email, company_name)')
+      .eq('event_id', parsed.data.event_id)
+
+    type VendorRow = { email: string | null; company_name: string | null } | null
+    const vendorRows: VendorRow[] = (eventVendors ?? []).map((v) => {
+      const vRow = (v as { vendors: VendorRow | VendorRow[] }).vendors
+      if (Array.isArray(vRow)) return vRow[0] ?? null
+      return vRow ?? null
+    })
+
     add(user.email ?? null, 'You (admin copy)')
     for (const d of djRows) {
       if (!d?.email) continue
       add(d.email, `DJ: ${d.dj_name ?? 'Unknown'}`)
+    }
+    for (const v of vendorRows) {
+      if (!v?.email) continue
+      add(v.email, `Vendor: ${v.company_name ?? 'Unknown'}`)
     }
     add(ev?.advance_contact_email ?? null, 'Advance contact')
   }

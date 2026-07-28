@@ -41,7 +41,8 @@ export default async function AdminLayout({
 
   if (!roles.includes('admin')) {
     if (roles.includes('viewer')) redirect('/viewer/year')
-    if (roles.includes('designer')) redirect('/designer/view')
+    if (roles.includes('contract')) redirect('/contract/view')
+    if (roles.includes('finance')) redirect('/finance/events')
     if (roles.includes('collab')) redirect('/collab/events')
     if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')

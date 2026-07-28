@@ -8,68 +8,70 @@ import {
 import { formatUSD } from '@/lib/budget'
 
 /**
- * /designer/view — Phase 17i.
+ * /contract/view — Phase 17i, renamed from 'designer' in migration
+ * 0029 to cover photographers/videographers too, not just flyer
+ * designers.
  *
- * The only page a `designer`-role account can see. Loads the first
- * custom view marked `audience = 'designer'` and renders it as a
+ * The only page a `contract`-role account can see. Loads the first
+ * custom view marked `audience = 'contract'` and renders it as a
  * read-only table. Stripped of:
- *   - admin sidebar (designer layout supplies its own slim header)
- *   - per-row link to /events/[id]/edit (designers can't see that)
+ *   - admin sidebar (contract layout supplies its own slim header)
+ *   - per-row link to /events/[id]/edit (contract users can't see that)
  *   - any budget / financial loading — even if the underlying view
  *     accidentally includes a financial field, this page never asks
- *     for it. Defence in depth on top of RLS migration 0020.
+ *     for it. Defence in depth on top of RLS migration 0020/0029.
  *
  * Data access:
- *   - `views`, `view_fields` are gated by RLS — migration 0020 lets
- *     designers SELECT only rows where audience='designer'.
- *   - `events`, `event_dj_slots` get a designer SELECT in 0020.
+ *   - `views`, `view_fields` are gated by RLS — migration 0020/0029
+ *     lets contract users SELECT only rows where audience='contract'.
+ *   - `events`, `event_dj_slots` get a contract SELECT in 0020/0029.
  *   - `venues` was already authenticated-readable (0002).
- *   - `djs` does NOT have a designer SELECT policy as of migration
- *     0028 — that row-level grant would have exposed pay/contact
- *     columns to any designer's REST session, not just `dj_name`.
- *     DJ names for the lineup come from the `designer_dj_names(uuid[])`
+ *   - `djs` does NOT have a contract SELECT policy as of migration
+ *     0028/0029 — that row-level grant would have exposed pay/contact
+ *     columns to any contract user's REST session, not just `dj_name`.
+ *     DJ names for the lineup come from the `contract_dj_names(uuid[])`
  *     RPC instead (SECURITY DEFINER, returns only id + dj_name, gated
- *     to designer/admin callers). Don't reintroduce a `djs(dj_name)`
+ *     to contract/admin callers). Don't reintroduce a `djs(dj_name)`
  *     embed on this page — it'll silently return null now.
  *
  * Keep this page in sync with /(admin)/views/[id]/page.tsx when the
  * lineup loader or field catalog changes — they're intentionally a
  * near-copy until we factor out a shared loader.
  */
-export default async function DesignerViewPage() {
+export default async function ContractViewPage() {
   const supabase = await createServerSupabaseClient()
 
-  // ---- 1. Find the designer view ---------------------------------------
-  // RLS (migration 0020) already restricts this query to views with
-  // audience='designer'. We additionally filter is_system=false so
-  // built-in views (Posting Calendar etc., seeded as audience='designer'
-  // in 0010) never win the picker — designers only see Chase's own
-  // custom views. If multiple custom designer views exist, we take the
-  // most-recently-updated one. If multiple designer views ever become
-  // a real workflow, we'd add an assigned_view_id column on profiles
-  // per the handoff's Path B note.
+  // ---- 1. Find the contract view -----------------------------------------
+  // RLS (migration 0020/0029) already restricts this query to views
+  // with audience='contract'. We additionally filter is_system=false
+  // so built-in views (Posting Calendar etc.) never win the picker —
+  // contract users only see Chase's own custom views. If multiple
+  // custom contract views exist, we take the most-recently-updated
+  // one. If multiple contract views ever become a real workflow, we'd
+  // add an assigned_view_id column on profiles per the handoff's Path
+  // B note.
   const { data: view } = await supabase
     .from('views')
     .select('id, name, description, audience, is_system, slug, updated_at')
-    .eq('audience', 'designer')
+    .eq('audience', 'contract')
     .eq('is_system', false)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
   if (!view) {
-    // No designer-audience view exists yet. Show a friendly empty
+    // No contract-audience view exists yet. Show a friendly empty
     // state instead of a 404 so Chase knows what to do.
     return (
       <div className="flex-1 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-2xl rounded-md border border-dashed border-zinc-300 bg-white p-8 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
           <h1 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            No designer view available
+            No contract view available
           </h1>
           <p>
             Your account is set up, but no custom view has been marked
-            for the designer audience yet. Ask the admin to open the
+            for the contract audience yet. Ask the admin to open the
             View Builder, edit a custom view, and change its{' '}
-            <strong>Audience</strong> dropdown to <em>Designer</em>.
+            <strong>Audience</strong> dropdown to <em>Contract</em>.
             (Built-in views like Posting Calendar don&apos;t count —
             this page only picks up your own views.)
           </p>
@@ -102,8 +104,8 @@ export default async function DesignerViewPage() {
 
   const visibleKeys = new Set(visibleFields.map((f) => f.key))
 
-  // Designer page intentionally never loads budgets. Lineup is still
-  // conditional so a designer view that doesn't include DJ fields
+  // Contract page intentionally never loads budgets. Lineup is still
+  // conditional so a contract view that doesn't include DJ fields
   // doesn't pay for the extra join.
   const needsLineup =
     visibleKeys.has('dj_count') ||
@@ -173,15 +175,15 @@ export default async function DesignerViewPage() {
     }
     const slotRows = (slots ?? []) as Slot[]
 
-    // DJ names come from a SECURITY DEFINER RPC (migration 0028), not
-    // a `djs(dj_name)` embed — designers don't have a row-level SELECT
-    // policy on `djs` anymore, so the embed would silently return null
-    // for every slot. The RPC returns only (id, dj_name) and is gated
-    // to designer/admin callers server-side.
+    // DJ names come from a SECURITY DEFINER RPC (migration 0028,
+    // renamed 0029), not a `djs(dj_name)` embed — contract users don't
+    // have a row-level SELECT policy on `djs` anymore, so the embed
+    // would silently return null for every slot. The RPC returns only
+    // (id, dj_name) and is gated to contract/admin callers server-side.
     const distinctDjIds = [...new Set(slotRows.map((s) => s.dj_id))]
     const nameById = new Map<string, string>()
     if (distinctDjIds.length > 0) {
-      const { data: names } = await supabase.rpc('designer_dj_names', {
+      const { data: names } = await supabase.rpc('contract_dj_names', {
         p_dj_ids: distinctDjIds,
       })
       for (const row of (names ?? []) as { id: string; dj_name: string }[]) {
@@ -233,7 +235,7 @@ export default async function DesignerViewPage() {
   }
 
   // ---- 5. Compose EventViewRow per event --------------------------------
-  // All financial fields are forced to null — even if a designer
+  // All financial fields are forced to null — even if a contract
   // view accidentally has a financial column on, it renders empty.
   type Row = { event: RawEvent; row: EventViewRow }
   const rows: Row[] = events.map((e) => {
@@ -369,7 +371,7 @@ export default async function DesignerViewPage() {
 
 // ---------------------------------------------------------------------------
 // Cell rendering — same shape as the admin renderer, except `link` is
-// rendered as plain text. Designers must not be able to navigate into
+// rendered as plain text. Contract users must not be able to navigate into
 // /events/[id]/edit (which would expose financials).
 // ---------------------------------------------------------------------------
 
@@ -455,7 +457,7 @@ function alignClassFor(kind: FieldDef['kind']): string {
 /**
  * Small colored pill matching the admin events page. Tentative
  * (default) is amber, confirmed is green. Renders status text inside
- * a rounded badge so designers can scan the page at a glance.
+ * a rounded badge so contract users can scan the page at a glance.
  *
  * Kept as a local function for parity with the other list pages
  * (events/page.tsx, viewer/year/page.tsx, etc.) which all duplicate

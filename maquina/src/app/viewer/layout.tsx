@@ -44,9 +44,11 @@ export default async function ViewerLayout({
   const roles: string[] = profile?.roles ?? []
   const hasViewerRole = roles.includes('viewer')
   if (!hasViewerRole && !roles.includes('admin')) {
-    // DJ / collab / unknown — punt to /dj/profile, the existing
-    // catch-all for non-admin non-collab non-viewer sessions.
-    if (roles.includes('collab') && !roles.includes('viewer')) redirect('/collab/events')
+    // DJ / collab / contract / unknown — punt to /dj/profile, the
+    // existing catch-all for non-admin non-collab non-viewer sessions.
+    if (roles.includes('collab')) redirect('/collab/events')
+    if (roles.includes('contract')) redirect('/contract/view')
+    if (roles.includes('finance')) redirect('/finance/events')
     redirect('/dj/profile')
   }
 

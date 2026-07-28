@@ -36,6 +36,7 @@ import { createEvent, type CreateEventResult } from './actions'
 
 type Dj = { id: string; dj_name: string; region: string | null }
 type Venue = { id: string; name: string; city: string; state: string }
+type Vendor = { id: string; company_name: string }
 
 type StageRow = {
   stage_number: number
@@ -76,9 +77,11 @@ function newSlot(
 export function NewEventForm({
   djs,
   venues,
+  vendors,
 }: {
   djs: Dj[]
   venues: Venue[]
+  vendors: Vendor[]
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -158,6 +161,17 @@ export function NewEventForm({
   // slots gets propagated.
   const tbdDjId = djs.find((d) => d.dj_name === 'TBD')?.id ?? ''
   const [slots, setSlots] = useState<SlotRow[]>([{ ...newSlot(1, 1, 'open', '21:00'), dj_id: tbdDjId }])
+
+  // -------- Vendors -------------------------------------------------------
+  // Plain checklist — no rate/time/slot fields, just which vendors are
+  // working this event so Send Run of Show knows who to email.
+  const [vendorIds, setVendorIds] = useState<string[]>([])
+
+  function toggleVendor(id: string) {
+    setVendorIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    )
+  }
 
   // -------- Venue autocomplete ------------------------------------------
   // Filter venues matching the typed city (case-insensitive contains).
@@ -243,6 +257,7 @@ export function NewEventForm({
         start_time: s.start_time,
         end_time: s.end_time,
       })),
+      vendor_ids: vendorIds,
     }
 
     startTransition(async () => {
@@ -939,6 +954,30 @@ export function NewEventForm({
           >
             + Add DJ slot
           </button>
+        )}
+      </Section>
+
+      {/* ---------- Section 7: Vendors ---------- */}
+      <Section
+        title="Vendors"
+        subtitle="Vendors working this event. They'll be added to the Run of Show email recipient list."
+      >
+        {vendors.length === 0 ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            No vendors on roster yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 md:grid-cols-3">
+            {vendors.map((v) => (
+              <Checkbox
+                key={v.id}
+                label={v.company_name}
+                checked={vendorIds.includes(v.id)}
+                onChange={() => toggleVendor(v.id)}
+                disabled={pending}
+              />
+            ))}
+          </div>
         )}
       </Section>
 

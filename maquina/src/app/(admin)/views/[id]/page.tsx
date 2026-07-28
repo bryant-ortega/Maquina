@@ -580,7 +580,7 @@ function alignClassFor(kind: FieldDef['kind']): string {
  * for parity with the other list pages — see the matching
  * components in src/app/(admin)/events/page.tsx,
  * src/app/(admin)/views/month/page.tsx, src/app/viewer/year/page.tsx,
- * and src/app/designer/view/page.tsx. Obvious consolidation target
+ * and src/app/contract/view/page.tsx. Obvious consolidation target
  * if we ever extract a shared <StatusBadge> component.
  */
 function StatusBadge({ status }: { status: string }) {

@@ -143,6 +143,7 @@ const UpdateEventInput = z.object({
   // Children
   stages: z.array(StageInput).min(1).max(4),
   slots: z.array(SlotInput).max(36),
+  vendor_ids: z.array(z.string().regex(UUID_LIKE, 'Invalid vendor id')).max(100).default([]),
 })
 
 export type UpdateEventValues = z.input<typeof UpdateEventInput>
@@ -565,6 +566,31 @@ export async function updateEvent(
 
   if (eErr) {
     return { ok: false, reason: 'db_failed', message: eErr.message }
+  }
+
+  // 3j. Replace event_vendors wholesale (migration 0031) — simplest
+  // correct approach for a plain checklist with no per-row fields to
+  // preserve: delete everything for this event, re-insert the current
+  // set. Cheap at this table's size and avoids a three-way diff.
+  {
+    const { error: delVendorsErr } = await admin
+      .from('event_vendors')
+      .delete()
+      .eq('event_id', data.id)
+    if (delVendorsErr) {
+      return { ok: false, reason: 'db_failed', message: delVendorsErr.message }
+    }
+    if (data.vendor_ids.length > 0) {
+      const { error: insVendorsErr } = await admin.from('event_vendors').insert(
+        data.vendor_ids.map((vendorId) => ({
+          event_id: data.id,
+          vendor_id: vendorId,
+        }))
+      )
+      if (insVendorsErr) {
+        return { ok: false, reason: 'db_failed', message: insVendorsErr.message }
+      }
+    }
   }
 
   // 4. Cache invalidation.

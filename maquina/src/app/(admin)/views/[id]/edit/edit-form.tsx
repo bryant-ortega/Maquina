@@ -49,7 +49,7 @@ export function EditViewForm({
     description: string
     audience:
       | 'internal'
-      | 'designer'
+      | 'contract'
       | 'venue'
       | 'dj'
       | 'partner'
@@ -233,7 +233,7 @@ export function EditViewForm({
             disabled={pending || deleting}
           >
             <option value="internal">Internal</option>
-            <option value="designer">Designer</option>
+            <option value="contract">Contract</option>
             <option value="venue">Venue</option>
             <option value="dj">DJ</option>
             <option value="partner">Partner</option>

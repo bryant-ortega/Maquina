@@ -230,3 +230,86 @@ export async function uploadVendorW9(
   revalidatePath(`/vendors/${vendorId}`)
   return { ok: true }
 }
+
+/**
+ * Admin grants or revokes the 'contract' role on a vendor's linked
+ * profiles row.
+ *
+ * Contract (renamed from 'designer' in migration 0029) is a locked,
+ * read-only role that shows one custom view of upcoming events —
+ * meant for photographers, videographers, and flyer designers who are
+ * already in the `vendors` table. It's additive: a vendor keeps their
+ * normal 'vendor' role and everything that comes with it (W-9 upload,
+ * profile page), and just gains a second landing surface at
+ * /contract/view. There's no self-registration path for this — it's
+ * always granted here, by an admin, on top of an existing account.
+ *
+ * `profiles.roles` has no CHECK constraint (see migration 0027's
+ * notes — it was tied to the now-dropped singular `role` column), so
+ * this is a plain array add/remove, not an enum-validated write.
+ */
+export type SetVendorContractRoleResult =
+  | { ok: true; enabled: boolean }
+  | { ok: false; reason: 'unauth' }
+  | { ok: false; reason: 'forbidden' }
+  | { ok: false; reason: 'invalid_id' }
+  | { ok: false; reason: 'no_vendor_row' }
+  | { ok: false; reason: 'no_profile_row' }
+  | { ok: false; reason: 'db_failed'; message: string }
+
+export async function setVendorContractRole(
+  vendorId: string,
+  enabled: boolean
+): Promise<SetVendorContractRoleResult> {
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, reason: 'unauth' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('roles')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!profile?.roles?.includes('admin')) return { ok: false, reason: 'forbidden' }
+
+  if (!UUID_LIKE.test(vendorId)) return { ok: false, reason: 'invalid_id' }
+
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  const { data: vendor } = await admin
+    .from('vendors')
+    .select('user_id')
+    .eq('id', vendorId)
+    .maybeSingle()
+  if (!vendor) return { ok: false, reason: 'no_vendor_row' }
+
+  const { data: targetProfile } = await admin
+    .from('profiles')
+    .select('id, roles')
+    .eq('user_id', vendor.user_id)
+    .maybeSingle()
+  if (!targetProfile) return { ok: false, reason: 'no_profile_row' }
+
+  const current: string[] = targetProfile.roles ?? []
+  const nextRoles = enabled
+    ? Array.from(new Set([...current, 'contract']))
+    : current.filter((r) => r !== 'contract')
+
+  const { error } = await admin
+    .from('profiles')
+    .update({ roles: nextRoles })
+    .eq('id', targetProfile.id)
+
+  if (error) {
+    return { ok: false, reason: 'db_failed', message: error.message }
+  }
+
+  revalidatePath(`/vendors/${vendorId}`)
+  return { ok: true, enabled }
+}

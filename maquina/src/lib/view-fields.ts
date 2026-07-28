@@ -103,7 +103,7 @@ export type EventViewRow = {
   headliner_name?: string | null
   /** Full ordered list of DJ names booked on the event (headliner
    *  first, then by slot priority + slot_order). Deduped by name.
-   *  Used by the `dj_list` field on custom views (e.g. Designer)
+   *  Used by the `dj_list` field on custom views (e.g. Contract)
    *  so flyers can show the full lineup. Null when the renderer
    *  didn't ask the lineup loader for it. */
   dj_names?: string[] | null

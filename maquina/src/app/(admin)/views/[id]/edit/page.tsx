@@ -69,7 +69,7 @@ export default async function EditViewPage({
             description: (view.description as string | null) ?? '',
             audience: view.audience as
               | 'internal'
-              | 'designer'
+              | 'contract'
               | 'venue'
               | 'dj'
               | 'partner'

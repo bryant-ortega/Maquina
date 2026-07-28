@@ -14,7 +14,7 @@ export function CreateViewForm() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [audience, setAudience] = useState<
-    'internal' | 'designer' | 'venue' | 'dj' | 'partner' | 'other'
+    'internal' | 'contract' | 'venue' | 'dj' | 'partner' | 'other'
   >('internal')
   const [error, setError] = useState<string | null>(null)
 
@@ -49,7 +49,7 @@ export function CreateViewForm() {
           maxLength={120}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Designer brief"
+          placeholder="e.g. Contract brief"
           className={inputClass}
           disabled={pending}
         />
@@ -83,7 +83,7 @@ export function CreateViewForm() {
           disabled={pending}
         >
           <option value="internal">Internal</option>
-          <option value="designer">Designer</option>
+          <option value="contract">Contract</option>
           <option value="venue">Venue</option>
           <option value="dj">DJ</option>
           <option value="partner">Partner</option>
