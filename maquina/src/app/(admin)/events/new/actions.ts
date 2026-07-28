@@ -16,6 +16,7 @@ import {
   yearOf,
   type SlotType,
 } from '@/lib/event-defaults'
+import { sendConfirmedEventCalendarInvite } from '@/lib/calendar-invite'
 
 /**
  * Admin creates a new event. This is the heart of Phase 7a.
@@ -454,6 +455,30 @@ export async function createEvent(
     if (vendorLinkErr) {
       return { ok: false, reason: 'db_failed', message: vendorLinkErr.message }
     }
+  }
+
+  // 3j. Calendar invite — only if the admin created it already confirmed
+  // (the common path is confirm-on-edit later, handled in
+  // events/[id]/edit/actions.ts; this covers the "create straight into
+  // confirmed" case). Best-effort — the function itself never throws —
+  // but we `await` rather than fire-and-forget because Vercel can freeze
+  // the serverless function as soon as this action returns, which would
+  // kill an in-flight, un-awaited email send.
+  if (data.status === 'confirmed') {
+    await sendConfirmedEventCalendarInvite({
+      id: eventId,
+      event_id: eventCode,
+      title: data.title.trim(),
+      date: data.date,
+      city: data.city.trim(),
+      state: data.state.trim(),
+      doors_time: data.doors_time,
+      end_time: data.end_time,
+      announce_date: data.announce_date,
+      begin_art_date: data.begin_art_date,
+      art_due_date: data.art_due_date,
+      on_sale_date: data.on_sale_date,
+    })
   }
 
   // 4. Cache invalidation.

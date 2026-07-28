@@ -16,6 +16,7 @@ import {
   yearOf,
   type SlotType,
 } from '@/lib/event-defaults'
+import { sendConfirmedEventCalendarInvite } from '@/lib/calendar-invite'
 
 /**
  * Admin updates an existing event. Mirror of createEvent but with diff-aware
@@ -217,9 +218,13 @@ export async function updateEvent(
   )
 
   // 3a. Confirm the event exists. Pulls existing fields we need below.
+  // `status` is pulled specifically to detect a tentative→confirmed
+  // transition below (calendar invite trigger) — we only want to fire
+  // on the save that actually flips it, not every subsequent edit of
+  // an already-confirmed event.
   const { data: existing } = await admin
     .from('events')
-    .select('id, event_id, date, city, state')
+    .select('id, event_id, date, city, state, status')
     .eq('id', data.id)
     .maybeSingle()
   if (!existing) return { ok: false, reason: 'not_found' }
@@ -591,6 +596,29 @@ export async function updateEvent(
         return { ok: false, reason: 'db_failed', message: insVendorsErr.message }
       }
     }
+  }
+
+  // 3k. Calendar invite — fires only on the save that flips status from
+  // something else to 'confirmed', not on every subsequent edit of an
+  // already-confirmed event. Best-effort — awaited (not fire-and-forget)
+  // because Vercel can freeze the function as soon as this action
+  // returns, which would kill an in-flight, un-awaited email send.
+  const justConfirmed = existing.status !== 'confirmed' && data.status === 'confirmed'
+  if (justConfirmed) {
+    await sendConfirmedEventCalendarInvite({
+      id: data.id,
+      event_id: newEventCode,
+      title: data.title.trim(),
+      date: data.date,
+      city: data.city.trim(),
+      state: data.state.trim(),
+      doors_time: data.doors_time,
+      end_time: data.end_time,
+      announce_date: data.announce_date,
+      begin_art_date: data.begin_art_date,
+      art_due_date: data.art_due_date,
+      on_sale_date: data.on_sale_date,
+    })
   }
 
   // 4. Cache invalidation.

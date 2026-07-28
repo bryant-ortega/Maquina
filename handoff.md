@@ -178,19 +178,64 @@ maquina/
 
 > Everything below was shipped across several sessions, not just "this
 > conversation" — the file has been handed off and re-picked-up multiple
-> times. Item 1 is the newest fix (a real, long-standing 404 bug on
-> emailed DJ/vendor W-9 links — caught by live testing after item 2
-> shipped). Item 2 is the contract/finance-role + vendor-event-
-> assignment batch (migrations 0029/0030/0031, all applied + deployed
-> as of this handoff). Items 3–6 are from the live session on
+> times. Item 1 is the newest addition (calendar invites on event
+> confirm). Item 2 is a real, long-standing 404 bug fix on emailed
+> DJ/vendor W-9 links. Item 3 is the contract/finance-role +
+> vendor-event-assignment batch (migrations 0029/0030/0031, all
+> applied + deployed). Items 4-7 are from the live session on
 > 2026-07-27 (vendor admin UI, a live-DB audit that turned up a real
-> signup bug, and a designer RLS tightening). Items 7–15 are new since
+> signup bug, and a designer RLS tightening). Items 8-16 are new since
 > the last handoff refresh before that (commit `34d851c`) and were
 > reconstructed from `git log`/`git show`, not witnessed directly.
-> Items 16+ (DJ-fraction column down through the MΛQUIИΛ wordmark) are
+> Items 17+ (DJ-fraction column down through the MΛQUIИΛ wordmark) are
 > from the session before that.
 
-1. **Fixed a real, long-standing bug: emailed DJ/vendor W-9 links
+1. **Calendar invite emailed to Chase + Elvis when an event is marked
+   confirmed.** New `src/lib/calendar-invite.ts`, built on the `ics`
+   npm package (new dependency). When an event's `status` flips to
+   `'confirmed'` — checked in both `createEvent` (create-straight-into-
+   confirmed) and `updateEvent` (the normal path: `existing.status !==
+   'confirmed' && data.status === 'confirmed'`, so it fires once per
+   transition, not on every subsequent edit of an already-confirmed
+   event) — Chase and Elvis get one email with a single `.ics`
+   attachment bundling: the show itself (timed, doors_time → end_time,
+   same wrap-past-midnight convention as `run-of-show.ts`) plus one
+   all-day entry per production milestone that's actually set (begin
+   art, art due, announce, on sale). Recipients come from
+   `CALENDAR_INVITE_RECIPIENTS` (comma-separated env var), defaulting
+   to `kalicorose@gmail.com,elvis@losgoths.co` if unset.
+   Chose email-delivered `.ics` over direct CalDAV push to iCloud —
+   discussed with Chase — because it reuses the already-working Resend
+   pipeline with zero new credentials, versus CalDAV needing an Apple
+   ID app-specific password from both Chase and Elvis stored as a
+   standing server secret for a feature that fires roughly weekly.
+   Trade-off: one tap to "Add All" from the Mail attachment, not
+   fully automatic — an email with an `.ics` attachment shows a rich
+   preview card in Mail on open, but does **not** silently write into
+   Calendar.app without that tap.
+   **Real bug caught during build, worth flagging if this code is ever
+   touched again:** the `ics` package's default `start`/`end` handling
+   silently converts through whatever OS timezone the Node process
+   happens to run in. Verified empirically in this sandbox
+   (`America/Los_Angeles`) — passing `[2026,10,31,21,0]` came back as
+   `20261101T040000Z`, i.e. it treated the array as Pacific local time
+   and converted to UTC. Vercel's default runtime is UTC, so the exact
+   same input would have shipped every confirmed-event calendar
+   invite 7-8 hours off with no error, no test failure, nothing — it
+   would only have shown up when Chase actually opened one on his
+   phone. Fixed by explicitly setting
+   `startInputType/startOutputType/endInputType/endOutputType:
+   'local'` on the show VEVENT, which writes the doors/end numbers as
+   a floating local time (no `Z`, no `TZID`) — correct here because
+   `doors_time`/`end_time` are already venue-local wall-clock strings
+   and the schema has no per-venue IANA timezone data to convert with
+   anyway. The four milestone all-day entries were never at risk —
+   `VALUE=DATE` fields have no timezone component in iCal.
+   `existing` in `updateEvent`'s pre-fetch now also selects `status`
+   (previously only `id, event_id, date, city, state`) so the
+   transition can be detected.
+
+2. **Fixed a real, long-standing bug: emailed DJ/vendor W-9 links
    404'd for anyone not already logged in.** `src/middleware.ts`
    404'd unauthenticated visits to `/dj/*` and `/vendor/*` — same
    "invisible to scanners" treatment as the genuinely admin-only
@@ -220,7 +265,7 @@ maquina/
    admin-authored view names) to "Contract" via direct SQL against the
    live DB; it's the view shown at the top of `/contract/view`.
 
-2. **Contract role (renamed from designer), Finance role, and vendor
+3. **Contract role (renamed from designer), Finance role, and vendor
    event assignments (migrations 0029/0030/0031 — written this
    session, NOT YET applied to the live DB as of this handoff).**
    Chase's product decisions: combine designer + videographer into one
@@ -299,7 +344,7 @@ maquina/
      dev`/`next build`, same category as the sandboxed-build font-fetch
      caveat below).
 
-3. **Designer RLS tightening (migration 0028).** Closed the gap flagged
+4. **Designer RLS tightening (migration 0028).** Closed the gap flagged
    in migration 0020's own comment and re-flagged in this doc's last
    refresh: `djs_select_designer` was a row-level policy, so a
    designer's session could query any column on `djs` — pay_method,
@@ -314,7 +359,7 @@ maquina/
    the distinct `dj_id`s, and calls the RPC once to resolve names. Same
    output, narrower access. Apply 0028 after 0026 and 0027.
 
-4. **Admin vendor index/detail pages.** New `/(admin)/vendors` (roster,
+5. **Admin vendor index/detail pages.** New `/(admin)/vendors` (roster,
    region filter chips, pending-W9 banner — mirrors `/djs`) and
    `/(admin)/vendors/[id]` (editable profile form + admin W-9
    upload/download — mirrors `/djs/[id]`). No booking-history section:
@@ -327,7 +372,7 @@ maquina/
    `profiles.roles` select already types the array; the cast was dead
    weight). Closes the "Admin index/detail for vendors" open item.
 
-5. **Live-DB audit — found and fixed a real signup bug (migrations
+6. **Live-DB audit — found and fixed a real signup bug (migrations
    0026, 0027).** While investigating the "roles has no migration
    file" gap, connected the (correct) Maquina Supabase project via MCP
    and queried the live schema directly, since migration files had
@@ -368,7 +413,7 @@ maquina/
    self-serve alike) but never read by anything — informational/audit
    value only, not wired into cron logic. Left as-is; not worth churn.
 
-6. **Corrected this handoff's own claims about `profiles.role`.** An
+7. **Corrected this handoff's own claims about `profiles.role`.** An
    earlier refresh of this doc (same day, prior turn) said `role` and
    `roles` coexist on `profiles` and that `get_my_role()` was still in
    use. Both were wrong per the live-DB audit in #2 — written from
@@ -384,7 +429,7 @@ maquina/
    initially connected to an unrelated project ("bryant-ortega's
    Project" / Monarca Services org) and had to be redirected.
 
-7. **Partner profit-split, made editable (commits `b0f5f53`, `9f324d6`).**
+8. **Partner profit-split, made editable (commits `b0f5f53`, `9f324d6`).**
    Final budget gets a new "Profit split" section: Chase / Elvis shares
    of final profit, each with the same Paid/Method inline controls as
    expense rows. Split % started as fixed 40/60 constants (0024), then
@@ -396,7 +441,7 @@ maquina/
    summary stats to "Est. X" (estimated) vs "Final X" (actualized) for
    income/expenses/profit/walkout.
 
-8. **Mobile `confirm()` fixes + batched budget save (commit `60a937c`).**
+9. **Mobile `confirm()` fixes + batched budget save (commit `60a937c`).**
    `window.confirm()`/`alert()` are silently suppressed in iOS
    home-screen PWAs and most in-app browsers (return `undefined`, no
    dialog shown), so taps gated behind `if (!confirm(...)) return`
@@ -414,7 +459,7 @@ maquina/
    same validation/writes, just concurrent; fixes slow saves on budgets
    with many line items.
 
-9. **Run-of-show DJ slot sort fix (commit `3754833`).** A same-evening
+10. **Run-of-show DJ slot sort fix (commit `3754833`).** A same-evening
    pre-doors `start_time` override (e.g. 9:00 PM start, 9:30 PM doors)
    was wrongly getting the same "+1440 min, treat as after-midnight"
    normalization meant for genuinely-after-midnight overrides, so it
@@ -422,7 +467,7 @@ maquina/
    Fixed in `lib/run-of-show.ts` by additionally requiring
    `customMin <= end - 1440` before applying the shift.
 
-10. **Run of Show + budget polish (commits `1aa9887`, `ffa27ad`,
+11. **Run of Show + budget polish (commits `1aa9887`, `ffa27ad`,
    `f7c3919`, `5d86758`, `04ad467`).** Venue name + address added to
    the Run of Show PDF (joins `venues`, omitted cleanly if no
    `venue_id`). Sponsor/vendor income broken out as their own budget
@@ -435,13 +480,13 @@ maquina/
    gross. Run of Show test-send now accepts multiple recipients with
    friendlier validation errors.
 
-11. **Manual load-in time overrides (commit `2da174d`).**
+12. **Manual load-in time overrides (commit `2da174d`).**
    `losgoths_load_in_time` / `dj_load_in_time` (0022) let an admin
    override either auto-computed load-in row (doors−180min /
    doors−90min) per event from the edit form. NULL (default on every
    existing row) preserves the old computed behavior.
 
-12. **Roles migrated to an array; multi-role support (commits `da4ea02`,
+13. **Roles migrated to an array; multi-role support (commits `da4ea02`,
    `772d591`, `b8b6fec`, `5a6cbf8`).** `profiles.roles text[]` is now
    the single source of truth for auth/routing (see schema highlights
    above for the gap: this column has no migration file). New
@@ -451,7 +496,7 @@ maquina/
    a `['viewer','collab']` user can hop between `/viewer/year` and
    `/collab/events` without re-logging in.
 
-13. **Phase 20 — automated emails + W-9 reminder cron (commit
+14. **Phase 20 — automated emails + W-9 reminder cron (commit
    `bed5f7d`).** `src/lib/email.ts` wraps **Resend**
    (`RESEND_API_KEY` env var — if unset, `sendEmail()` no-ops with a
    logged warning instead of throwing; "dormant-safe by design," and
@@ -468,7 +513,7 @@ maquina/
    never written/read by the cron — vestigial from the original spec,
    flag for cleanup or wiring up.
 
-14. **Status badges + past-row fade (commits `d2ba509`, `35c4136`,
+15. **Status badges + past-row fade (commits `d2ba509`, `35c4136`,
    `f357ecb`, `1fc0ae5`).** Event status renders as a colored pill
    (green=confirmed, amber=tentative) on the designer view and the
    custom view renderer, matching the existing admin events page.
@@ -476,7 +521,7 @@ maquina/
    month, year, custom views, designer, collab, viewer) via a shared
    `isPastDate` helper in `lib/utils.ts`.
 
-15. **Phase 17i — designer role (commits `c2ff693`, `32f8a82`).** New
+16. **Phase 17i — designer role (commits `c2ff693`, `32f8a82`).** New
    `'designer'` role for outside flyer designers: signs in, sees
    exactly one read-only page (`/designer/view`, most-recently-updated
    `audience='designer'` custom view), no event detail page, no admin
@@ -494,7 +539,7 @@ maquina/
    View builder also gained a DJ-lineup field option for building
    Designer-audience views.
 
-16. **DJ-fraction column on events / month / year.** New
+17. **DJ-fraction column on events / month / year.** New
    `src/components/dj-fraction.tsx` exports `fetchSlotCounts(supabase,
    eventIds)` (one round-trip join `event_dj_slots → djs(dj_name)`,
    rolls up to `Map<event_id, { filled, total }>`) and a
@@ -506,7 +551,7 @@ maquina/
    view has no separate mobile card path (the table just scrolls).
    `colSpan` on empty-state rows bumped from 7 to 8 in each file.
 
-17. **TBD placeholder DJ.** Migration 0019 drops NOT NULL on
+18. **TBD placeholder DJ.** Migration 0019 drops NOT NULL on
    `djs.user_id` (UNIQUE stays — Postgres NULLs are distinct under
    standard UNIQUE) and inserts one row with `dj_name='TBD'`,
    `email='tbd@maquina.local'`, region `'Other'`, `w9_status='on_file'`.
@@ -518,7 +563,7 @@ maquina/
    lineups save cleanly and the DJ-fraction column shows them as 0/N
    yellow.
 
-18. **Five new regions.** Migration 0018 drops + re-adds the region
+19. **Five new regions.** Migration 0018 drops + re-adds the region
    CHECK constraint on both `djs` and `vendors` to include `'New York'`,
    `'Portland'`, `'Texas'`, `'Central Cal'`, `'Las Vegas'` (existing
    six unchanged). Every region zod enum + dropdown array updated in
@@ -526,7 +571,7 @@ maquina/
    index. New entries appended after the existing six so existing rows
    don't get reshuffled in the admin UI.
 
-19. **Required fields on registration.** Phone, pay method, and pay
+20. **Required fields on registration.** Phone, pay method, and pay
    handle are required on both DJ and vendor registration. The
    `pay_method` dropdown defaults to Zelle on form mount (no more
    "—" placeholder option). Pay handle label reads "Pay handle
@@ -534,7 +579,7 @@ maquina/
    enforce. DB columns remain nullable for back-compat with older
    rows; new registrations can't write nulls.
 
-20. **Phase 17h — vendor self-registration.** New `vendors` table
+21. **Phase 17h — vendor self-registration.** New `vendors` table
    (mirrors `djs` — `company_name`, `contact_name`, `region`,
    `pay_method`, `pay_handle`, `phone`, `email`, W-9 fields). Public
    form at `/register/vendor`, post-registration flow:
@@ -549,7 +594,7 @@ maquina/
    page for vendors yet — RLS gives admins full read but there's no
    UI to manage the roster yet.
 
-21. **Phase 17g — viewer role.** Migration 0016 adds `'viewer'` to the
+22. **Phase 17g — viewer role.** Migration 0016 adds `'viewer'` to the
    profiles role CHECK and an `events_select_viewer` RLS policy so a
    viewer's SSR client can read events. New route group at
    `src/app/viewer/` with a slim layout (brand row + sign-out, no
@@ -563,7 +608,7 @@ maquina/
    now role-routes correctly (viewer→/viewer/year, collab→/collab/events,
    vendor→/vendor/profile, default→/dj/profile).
 
-22. **Phase 17f — custom view renderer.** `/views/[id]/page.tsx`
+23. **Phase 17f — custom view renderer.** `/views/[id]/page.tsx`
    loads the view + its visible `view_fields` in `position` order.
    Conditionally pulls `event_dj_slots` (with `djs(dj_name)`) only if
    `dj_count` or `headliner_name` is visible; conditionally pulls
@@ -577,7 +622,7 @@ maquina/
    (Phase 17 spec) and CSV export were deliberately skipped from this
    slice — flag for future work.
 
-23. **MΛQUIИΛ wordmark.** Replaced every visible "Maquina" header text
+24. **MΛQUIИΛ wordmark.** Replaced every visible "Maquina" header text
    with the stylized `MΛQUIИΛ` across `(admin)/layout.tsx` (desktop
    sidebar + mobile drawer), `(admin)/_mobile-nav.tsx`,
    `collab/layout.tsx`, and `viewer/layout.tsx`. Login page wordmark
@@ -585,7 +630,7 @@ maquina/
    `text-2xl` (literal 2×) per Chase's request. `alt="Maquina"`
    attributes on brand images stay plain ASCII for screen readers.
 
-24. **PostgREST schema-cache gotcha (recurring).** Every time you paste
+25. **PostgREST schema-cache gotcha (recurring).** Every time you paste
    a migration into the Supabase SQL Editor that creates or alters a
    table, follow it with `NOTIFY pgrst, 'reload schema';` in the same
    editor. Without that, PostgREST keeps serving "Could not find the
@@ -595,7 +640,7 @@ maquina/
    once on `vendors`. Add the NOTIFY line to your migration apply
    checklist.
 
-25. **Phase 18 (slim) — inline payment tracking on Final budget.** The
+26. **Phase 18 (slim) — inline payment tracking on Final budget.** The
    actualized (final) budget's expense table now exposes a `Paid`
    dropdown (binary `unpaid` / `paid` — no `partial`) and a freeform
    `Method` text input on each row. Estimated budget UI is unchanged.
@@ -620,7 +665,7 @@ maquina/
    with history, that experiment is in the git log — don't re-invent
    it from scratch.
 
-26. **qty=0 → "remove on save" in the budget form.** Setting an
+27. **qty=0 → "remove on save" in the budget form.** Setting an
    expense row's qty to 0 (or blank) marks it for deletion: the row
    instantly fades + strikes-through with a "Will be removed on save"
    tooltip; the actual delete happens on Save. Existing rows get
@@ -631,7 +676,7 @@ maquina/
    constraint message. See `budget-form.tsx` (`keptExpenses`,
    `willBeRemoved`) and `actions.ts` (`z.number().positive(...)`).
 
-27. **Events index polish.**
+28. **Events index polish.**
    - Sort: strict ascending by date (soonest → latest). The previous
      past-vs-future bucketing is gone — status / past / future have
      no effect on order.
@@ -643,12 +688,12 @@ maquina/
    - Mobile card swaps the event_id chip for the day-of-week.
    See `src/app/(admin)/events/page.tsx`.
 
-28. **`payment_method` is now freeform text.** Migration `0011`
+29. **`payment_method` is now freeform text.** Migration `0011`
    dropped the original `('paypal','zelle','venmo','other')` CHECK
    constraint. Cash, check #1234, ACH, etc. all work. Column stays
    nullable — empty stored as NULL.
 
-29. **DJ registration — orphan-account recovery (commit `5ad1096`).**
+30. **DJ registration — orphan-account recovery (commit `5ad1096`).**
    When an auth user exists for an email but the `djs` row was deleted,
    re-submitting the registration form with the matching password now
    reclaims the account (re-inserts the `djs` row + fixes the `profiles`
@@ -657,23 +702,23 @@ maquina/
    overwrite. See `src/app/register/dj/actions.ts` (`reclaimOrphanAccount`,
    `isEmailExistsError`) and the matching UI states in `registration-form.tsx`.
 
-30. **Register page copy (commit `45498f5`).** Removed stale "we'll email a
+31. **Register page copy (commit `45498f5`).** Removed stale "we'll email a
    magic link" line — flow has been password-based for a while.
 
-31. **Admin W-9 upload (commit `44b0c8b`).** New `uploadDjW9` server
+32. **Admin W-9 upload (commit `44b0c8b`).** New `uploadDjW9` server
    action + `<W9UploadButton>` client component, wired into the admin DJ
    detail page header. Writes to `w9s/{dj_user_id}/w9.pdf`, sets
    `w9_storage_path` + flips `w9_status` to `on_file`. Shows as "Upload W-9"
    when pending, "Replace W-9" when on file. Handles wrong type / too
    large / no linked user_id / etc.
 
-32. **Admin nav polish (commits `248b232`, `34f7156`).** Desktop sidebar:
+33. **Admin nav polish (commits `248b232`, `34f7156`).** Desktop sidebar:
    skull-triangle logo + "Maquina" header, character face image above
    the nav, no "LosGothsCo Enterprise" subtext. Mobile top bar: hamburger
    + small logo + "Maquina". Mobile drawer: face image above nav (smaller
    than desktop), `overflow-y-auto` on nav so signout stays anchored.
 
-33. **Login page.** Two-column layout on `sm+` (`goth-makima.webp` on the
+34. **Login page.** Two-column layout on `sm+` (`goth-makima.webp` on the
    left, sign-in form on the right) and stacked on mobile. Wordmark says
    just "Maquina". Login form now reads from FormData(form) at submit time
    so autofill works without the "type a space then backspace" dance, and
