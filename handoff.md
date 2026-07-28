@@ -641,16 +641,11 @@ maquina/
   Nothing in BUILD_PLAN.md is flagged as the "next" phase right now —
   confirm with Chase what he wants to tackle before assuming any item
   below is next.
-- **Apply migrations 0026, 0027, and 0028 if you haven't yet, in that
-  order.** 0026 fixes the active signup-role bug (see "What's done"
-  #2) — apply it soon. 0027 is pure documentation catch-up, a no-op
-  against the current live DB. 0028 tightens designer RLS on `djs` and
-  requires the matching app-code change in
-  `src/app/designer/view/page.tsx` (already committed alongside it) —
-  don't apply 0028 without that code also being live, or the designer
-  view's DJ lineup will go blank (old `djs(dj_name)` embed would still
-  work fine until 0028 lands; after 0028, only the new RPC-based code
-  path resolves names).
+- ~~Apply migrations 0026, 0027, 0028~~ — **done**, 2026-07-27. All
+  three ran clean; verified directly against the live DB afterward
+  (`djs_select_designer` gone, `designer_dj_names()` exists with
+  `authenticated` EXECUTE granted, code deployed on `main` first so
+  there was no window where the designer view's lineup could break).
 - **`w9_reminders.stopped_at` is write-only, not vestigial exactly.**
   Corrected from an earlier version of this doc: it genuinely gets set
   by every W-9 upload path (admin and self-serve). It's just never
@@ -745,17 +740,14 @@ maquina/
   cache" — confusing because the table actually exists. We hit this on
   views (Phase 17d) and again on vendors (Phase 17h).
 
-*Last refreshed 2026-07-27, later the same day again, on top of commit
-`33aa421` (vendor admin pages — the last thing actually committed as
-of this refresh). Migrations 0026, 0027, and 0028 plus the
-`designer/view/page.tsx` RPC change are written to disk but **not yet
-committed or pasted into the Supabase SQL Editor** as of this refresh
-— check with Chase whether they've been applied yet before assuming
-`handle_new_user` is fixed or designer RLS is tightened. If you're
+*Last refreshed 2026-07-27, end of session, on top of commit `890054e`
+("Fix signup role bug, catch up roles/has_role migrations, tighten
+designer RLS on djs") — pushed, live on `origin/main`. Migrations
+0026–0028 are all applied and verified against the live DB. If you're
 reading this much later and the "What's done" numbering feels dated,
-check `git log --oneline` for anything past `33aa421`, and
+check `git log --oneline` for anything past `890054e`, and
 independently verify anything auth/RLS-related against the live DB
 rather than trusting migration files alone — this session found real
-drift between the two more than once.*
+drift between the two more than once, so it's a habit worth keeping.*
 
 — end of handoff
