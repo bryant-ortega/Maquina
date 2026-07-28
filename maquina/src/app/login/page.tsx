@@ -147,10 +147,10 @@ export default function LoginPage() {
               Forgot password?
             </Link>
             <Link
-              href="/register/dj"
+              href="/register"
               className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             >
-              Register as a DJ →
+              Register as a DJ or vendor →
             </Link>
           </div>
         </form>
