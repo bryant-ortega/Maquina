@@ -3,8 +3,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 /**
  * Refreshes the Supabase session on every request and gates protected routes.
- * Per BUILD_PLAN: unauthenticated visits to admin/dj routes return 404, not
- * 401 or a login redirect, to keep the admin portal invisible to scanners.
+ * Per BUILD_PLAN: unauthenticated visits to admin routes (and the
+ * invite-only collab/viewer/contract roles) return 404, not 401 or a
+ * login redirect, to keep those surfaces invisible to scanners. /dj
+ * and /vendor are the exception — they're public self-registration
+ * flows with links emailed automatically, so they redirect to /login
+ * at the page level instead (see the /dj and /vendor comments below).
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -48,9 +52,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/not-found', request.url))
   }
 
-  if (path.startsWith('/dj') && !user) {
-    return NextResponse.rewrite(new URL('/not-found', request.url))
-  }
+  // /dj/* does NOT 404 unauthenticated visits, unlike the admin routes
+  // above. Every /dj page already redirect()s signed-out users to
+  // /login itself (see dj/profile, dj/upload-w9). That page-level
+  // redirect is the real gate — DJs get emailed links straight into
+  // these routes (registration confirmation, W-9 reminders), and those
+  // links have to work when clicked cold from an inbox, not 404 just
+  // because the click landed in a browser with no session yet. Bug
+  // found 2026-07-27: this route used to be in the 404-on-unauth list
+  // above, which silently broke every emailed W-9 link for anyone not
+  // already logged in.
 
   // /collab/* requires a session. Role enforcement (must be 'collab')
   // happens in the collab layout — middleware only ensures someone is
@@ -73,12 +84,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/not-found', request.url))
   }
 
-  // /vendor/* requires a session. Role enforcement happens at the
-  // page level (each vendor page redirects non-vendors). Middleware
-  // only ensures someone is signed in first.
-  if (path.startsWith('/vendor') && !user) {
-    return NextResponse.rewrite(new URL('/not-found', request.url))
-  }
+  // /vendor/* — same reasoning as /dj/* above: no 404-on-unauth here.
+  // Page-level redirect('/login') (vendor/profile, vendor/upload-w9)
+  // is what actually gates it, and the registration-confirmation +
+  // W-9-reminder emails link straight into these routes.
 
   return supabaseResponse
 }
