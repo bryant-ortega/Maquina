@@ -149,7 +149,7 @@ export default function OfrendasVendorApplicationPage() {
           <InfoSection title="Before you apply — space & setup">
             <ul className="ml-4 list-disc space-y-1.5">
               <li>
-                Standard space is 6ft x 4ft, indoors, no canopies. Need more
+                Standard space is 6ft x 6ft, indoors, no canopies. Need more
                 room? You can reserve 2 spaces for up to a 10x10 footprint.
               </li>
               <li>

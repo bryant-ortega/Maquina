@@ -41,7 +41,7 @@ const BEST_FIT_OPTIONS = [
 ] as const
 
 const SPACE_OPTIONS = [
-  '1 space (6ft x 4ft)',
+  '1 space (6ft x 6ft)',
   '2 spaces (up to 10x10 footprint)',
 ] as const
 
