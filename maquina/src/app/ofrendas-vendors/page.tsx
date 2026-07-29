@@ -134,7 +134,15 @@ export default function OfrendasVendorApplicationPage() {
             </p>
             <p>
               <span className="text-zinc-300">Contact:</span>{' '}
-              ofrendasmarket@gmail.com | IG @Ofrendasmarket
+              ofrendasmarket@gmail.com | Instagram{' '}
+              <a
+                href="https://instagram.com/ofrendasmarket"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-300 underline underline-offset-2 hover:text-zinc-100"
+              >
+                @Ofrendasmarket
+              </a>
             </p>
           </InfoSection>
 
