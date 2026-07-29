@@ -45,20 +45,26 @@ export default function OfrendasVendorApplicationPage() {
   return (
     <div className="flex flex-1 items-center justify-center px-6 py-16">
       <div className="w-full max-w-2xl space-y-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-sm sm:p-10">
-        <div className="space-y-4 text-center">
+        <div className="space-y-5 text-center">
+          <div className="relative mx-auto h-10 w-full max-w-xs sm:h-12">
+            <Image
+              src="/ofrendas/losgothsco-wordmark.png"
+              alt="LosGothsCo"
+              fill
+              priority
+              sizes="320px"
+              className="object-contain"
+            />
+          </div>
           <div className="relative mx-auto h-28 w-28 sm:h-32 sm:w-32">
             <Image
               src="/ofrendas/aztec-sun-skull.jpeg"
               alt="Aztec sun-skull carving"
               fill
-              priority
               sizes="128px"
               className="rounded-full object-cover"
             />
           </div>
-          <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500">
-            🖤 LosGothsCo presents 🖤
-          </p>
           <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">
             Ofrendas: A Market Event
           </h1>
