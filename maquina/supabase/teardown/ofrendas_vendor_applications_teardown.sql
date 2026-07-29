@@ -6,9 +6,11 @@
 -- was never incorporated.
 --
 -- After running this SQL, also delete these files to finish the job:
---   src/app/ofrendas-vendors/                                      (the page, form, and server action)
---   supabase/migrations/0032_ofrendas_vendor_applications.sql       (the migration that created it)
---   supabase/teardown/ofrendas_vendor_applications_teardown.sql     (this file)
+--   src/app/ofrendas-vendors/                                                  (the page, form, and server action)
+--   supabase/migrations/0032_ofrendas_vendor_applications.sql                  (original migration)
+--   supabase/migrations/0033_ofrendas_vendor_applications_full_spec.sql        (rebuild to the full 15-question spec)
+--   supabase/teardown/ofrendas_vendor_applications_teardown.sql                (this file)
+--   the sendOfrendasVendorApplicationReceipt function in src/lib/email.ts
 --
 -- Nothing else in the app references this table or route, so that's
 -- the entire cleanup — no other migrations or code need to change.

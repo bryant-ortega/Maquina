@@ -9,7 +9,11 @@ import { sendOfrendasVendorApplicationReceipt } from '@/lib/email'
  * application form. Not part of the real vendor onboarding flow
  * (register/vendor/actions.ts): no auth account is created, nothing is
  * written to `vendors`. This only writes to the isolated
- * `ofrendas_vendor_applications` table (migration 0032).
+ * `ofrendas_vendor_applications` table.
+ *
+ * Field list mirrors Ofrendas_Vendor_Application_Form_Spec.md exactly
+ * (15 questions) — see application-form.tsx for the option constants
+ * shared with the client-side schema.
  *
  * Uses the service-role key deliberately — that table has RLS enabled
  * with no anon/authenticated policies, so this insert only works
@@ -19,32 +23,113 @@ import { sendOfrendasVendorApplicationReceipt } from '@/lib/email'
  * supabase/teardown/ofrendas_vendor_applications_teardown.sql.
  */
 
-const CATEGORY_OPTIONS = [
-  'Clothing & accessories',
-  'Occult & oddity collectibles',
-  'Arts & artistic creations',
-  'Pet-related goods',
-  'Food & beverage',
+const OFFERING_OPTIONS = [
+  'Apparel & Accessories',
+  'Jewelry',
+  'Occult / Oddities / Altar Goods',
+  'Art & Home Decor',
+  'Pet Goods',
+  'Food',
+  'Beverages',
+  'Services',
   'Other',
 ] as const
 
-const ApplicationInput = z.object({
-  business_name: z.string().trim().min(1, 'Business name is required').max(200),
-  contact_name: z.string().trim().min(1, 'Contact name is required').max(200),
-  email: z.string().trim().toLowerCase().email('Enter a valid email'),
-  phone: z.string().trim().min(1, 'Phone is required').max(40),
-  instagram_or_website: z.string().trim().max(200).optional(),
-  categories: z
-    .array(z.enum(CATEGORY_OPTIONS))
-    .min(1, 'Select at least one category'),
-  plant_based_options: z.boolean().optional(),
-  description: z
-    .string()
-    .trim()
-    .min(1, "Tell us a bit about what you'd be selling")
-    .max(2000),
-  additional_notes: z.string().trim().max(2000).optional(),
-})
+const BEST_FIT_OPTIONS = [
+  'Handmade, independent-designer, thrifted, or vintage goth fashion',
+  'Occult, oddities, tarot & altar goods',
+  'Dark art, illustration & home decor',
+  'Latino-culture-inspired & Latino-goth creations',
+  'Pet-related goth goods',
+  'Food, treats & beverages',
+  'Other',
+] as const
+
+const SPACE_OPTIONS = [
+  '1 space (6ft x 4ft)',
+  '2 spaces (up to 10x10 footprint)',
+] as const
+
+const FOOD_PERMIT_OPTIONS = [
+  "Yes, I'll send a copy once my space is secured.",
+  'I hold an active Food Truck/Trailer/Cart permit and will send a copy once my space is secured.',
+  "Not yet, but I'll complete my TFF application at least 30 days before the event.",
+  'N/A — not a food or beverage vendor.',
+  'Other',
+] as const
+
+const CONTENT_CONSENT_OPTIONS = ['Yes, happy to!', 'No'] as const
+
+const BOOTH_DECOR_OPTIONS = [
+  'Yes, already planning something!',
+  'Not this time.',
+] as const
+
+const ApplicationInput = z
+  .object({
+    business_name: z.string().trim().min(1, 'Business name is required').max(200),
+    vendor_names: z.string().trim().min(1, 'Vendor name(s) are required').max(300),
+    email: z.string().trim().toLowerCase().email('Enter a valid email'),
+    phone: z.string().trim().min(1, 'Phone is required').max(40),
+    instagram_handle: z
+      .string()
+      .trim()
+      .min(1, 'Instagram handle is required')
+      .max(100),
+    website_url: z.string().trim().max(300).optional(),
+    offerings: z
+      .array(z.enum(OFFERING_OPTIONS))
+      .min(1, 'Select at least one'),
+    offerings_other: z.string().trim().max(200).optional(),
+    best_fit: z.enum(BEST_FIT_OPTIONS, { message: 'Please select one' }),
+    best_fit_other: z.string().trim().max(200).optional(),
+    business_description: z
+      .string()
+      .trim()
+      .min(1, 'Tell us about your business')
+      .max(3000),
+    space_needed: z.enum(SPACE_OPTIONS, { message: 'Please select one' }),
+    food_permit_status: z.enum(FOOD_PERMIT_OPTIONS, {
+      message: 'Please select one',
+    }),
+    food_permit_other: z.string().trim().max(200).optional(),
+    menu_description: z.string().trim().max(2000).optional(),
+    agreement_accepted: z.boolean(),
+    content_use_consent: z.enum(CONTENT_CONSENT_OPTIONS, {
+      message: 'Please select one',
+    }),
+    booth_decor_plan: z.enum(BOOTH_DECOR_OPTIONS).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.offerings.includes('Other') && !data.offerings_other) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['offerings_other'],
+        message: 'Please describe what you offer.',
+      })
+    }
+    if (data.best_fit === 'Other' && !data.best_fit_other) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['best_fit_other'],
+        message: 'Please describe where your work fits.',
+      })
+    }
+    if (data.food_permit_status === 'Other' && !data.food_permit_other) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['food_permit_other'],
+        message: 'Please provide details.',
+      })
+    }
+    if (!data.agreement_accepted) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['agreement_accepted'],
+        message: 'You must agree to the Ofrendas Vendor Agreement to submit.',
+      })
+    }
+  })
 
 export type SubmitApplicationResult =
   | { ok: true }
@@ -61,16 +146,30 @@ export async function submitOfrendasVendorApplication(
     return { ok: true }
   }
 
+  const optionalStr = (key: string) => {
+    const v = formData.get(key)
+    return typeof v === 'string' && v.trim() ? v : undefined
+  }
+
   const raw = {
     business_name: formData.get('business_name'),
-    contact_name: formData.get('contact_name'),
+    vendor_names: formData.get('vendor_names'),
     email: formData.get('email'),
     phone: formData.get('phone'),
-    instagram_or_website: formData.get('instagram_or_website') || undefined,
-    categories: formData.getAll('categories'),
-    plant_based_options: formData.get('plant_based_options') === 'on',
-    description: formData.get('description'),
-    additional_notes: formData.get('additional_notes') || undefined,
+    instagram_handle: formData.get('instagram_handle'),
+    website_url: optionalStr('website_url'),
+    offerings: formData.getAll('offerings'),
+    offerings_other: optionalStr('offerings_other'),
+    best_fit: formData.get('best_fit'),
+    best_fit_other: optionalStr('best_fit_other'),
+    business_description: formData.get('business_description'),
+    space_needed: formData.get('space_needed'),
+    food_permit_status: formData.get('food_permit_status'),
+    food_permit_other: optionalStr('food_permit_other'),
+    menu_description: optionalStr('menu_description'),
+    agreement_accepted: formData.get('agreement_accepted') === 'on',
+    content_use_consent: formData.get('content_use_consent'),
+    booth_decor_plan: optionalStr('booth_decor_plan'),
   }
 
   const parsed = ApplicationInput.safeParse(raw)
@@ -91,9 +190,26 @@ export async function submitOfrendasVendorApplication(
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const { error } = await admin
-    .from('ofrendas_vendor_applications')
-    .insert(parsed.data)
+  const { error } = await admin.from('ofrendas_vendor_applications').insert({
+    business_name: parsed.data.business_name,
+    vendor_names: parsed.data.vendor_names,
+    email: parsed.data.email,
+    phone: parsed.data.phone,
+    instagram_handle: parsed.data.instagram_handle,
+    website_url: parsed.data.website_url ?? null,
+    offerings: parsed.data.offerings,
+    offerings_other: parsed.data.offerings_other ?? null,
+    best_fit: parsed.data.best_fit,
+    best_fit_other: parsed.data.best_fit_other ?? null,
+    business_description: parsed.data.business_description,
+    space_needed: parsed.data.space_needed,
+    food_permit_status: parsed.data.food_permit_status,
+    food_permit_other: parsed.data.food_permit_other ?? null,
+    menu_description: parsed.data.menu_description ?? null,
+    agreement_accepted: parsed.data.agreement_accepted,
+    content_use_consent: parsed.data.content_use_consent,
+    booth_decor_plan: parsed.data.booth_decor_plan ?? null,
+  })
 
   if (error) {
     return {
@@ -109,7 +225,7 @@ export async function submitOfrendasVendorApplication(
   try {
     await sendOfrendasVendorApplicationReceipt({
       to: parsed.data.email,
-      contactName: parsed.data.contact_name,
+      contactName: parsed.data.vendor_names,
       businessName: parsed.data.business_name,
     })
   } catch {
