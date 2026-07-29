@@ -239,13 +239,14 @@ export async function sendOfrendasVendorApplicationReceipt(args: {
       <p style="margin:0 0 12px;">Hi ${args.contactName},</p>
       <p style="margin:0 0 12px;">Thanks for applying to be a vendor at Ofrendas, LosGothsCo's market event. We've got your application for <strong>${args.businessName}</strong> on file.</p>
       <p style="margin:0 0 12px;">We review applications on a rolling basis and will follow up by email if it's a fit for the market. Follow along at <a href="${igUrl}" style="color:#18181b;">@ofrendasmarket</a> for updates, and reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a> if you have any questions.</p>
-      <p style="margin:0;">Gracias,<br>LosGothsCo</p>
+      <p style="margin:0 0 16px;">Gracias,<br>LosGothsCo</p>
+      <p style="margin:0;font-size:12px;color:#a1a1aa;">This is a do-not-reply address — for questions, email <a href="mailto:${supportEmail}" style="color:#a1a1aa;">${supportEmail}</a> instead.</p>
     `,
   })
   return sendEmail({
     to: args.to,
     subject: 'We got your Ofrendas vendor application 🖤',
     html,
-    text: `Hi ${args.contactName}, thanks for applying to be a vendor at Ofrendas. We've got your application for ${args.businessName} on file. We review applications on a rolling basis and will follow up by email if it's a fit. Follow along at @ofrendasmarket (${igUrl}) for updates, and reach out to ${supportEmail} with questions. Gracias, LosGothsCo`,
+    text: `Hi ${args.contactName}, thanks for applying to be a vendor at Ofrendas. We've got your application for ${args.businessName} on file. We review applications on a rolling basis and will follow up by email if it's a fit. Follow along at @ofrendasmarket (${igUrl}) for updates, and reach out to ${supportEmail} with questions. Gracias, LosGothsCo. This is a do-not-reply address — for questions, email ${supportEmail} instead.`,
   })
 }
