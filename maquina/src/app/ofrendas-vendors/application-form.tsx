@@ -66,6 +66,7 @@ const AGREEMENT_TERMS = [
   "I'll show up ready to be warm, welcoming, and easy to work with — for guests and the Ofrendas team alike.",
   "I'll help keep the energy positive and drama-free.",
   "I'll talk up Ofrendas within my own community and help spread the word.",
+  'I agree to promote the event flyer on my active social media platforms.',
   "I'll check my Instagram DMs and email for event updates, and I'm fine receiving emails about marketing, invoices, and receipts.",
   "I understand Ofrendas / LosGothsCo and The Regent Theater aren't liable for my business or outcomes beyond their control (including weather).",
   "I won't smoke, vape, bring outside alcohol, or use open flame at the venue, and I won't play my own music or use outside speakers.",
