@@ -34,7 +34,7 @@ function InfoSection({
       <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
         {title}
       </h2>
-      <div className="space-y-2 text-sm leading-relaxed text-zinc-400">
+      <div className="space-y-2 text-base leading-relaxed text-zinc-400">
         {children}
       </div>
     </div>
@@ -43,40 +43,40 @@ function InfoSection({
 
 export default function OfrendasVendorApplicationPage() {
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-2xl space-y-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-8 shadow-sm sm:p-10">
+    <div className="flex flex-1 items-center justify-center px-3 py-8 sm:px-6 sm:py-16">
+      <div className="w-full max-w-2xl space-y-6 rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-sm sm:space-y-8 sm:p-10">
         <div className="space-y-5 text-center">
           <div className="flex items-center justify-center gap-2">
             <Image
               src="/ofrendas/losgothsco-wordmark.png"
               alt="LosGothsCo"
-              width={89}
-              height={20}
+              width={107}
+              height={24}
               priority
-              className="h-5 w-auto object-contain"
+              className="h-6 w-auto object-contain"
             />
-            <span className="text-sm font-semibold uppercase tracking-widest leading-none text-zinc-500">
+            <span className="text-base font-semibold uppercase tracking-widest leading-none text-zinc-500">
               Presents
             </span>
           </div>
-          <div className="relative mx-auto h-28 w-28 sm:h-32 sm:w-32">
+          <div className="relative mx-auto h-32 w-32 sm:h-36 sm:w-36">
             <Image
               src="/ofrendas/aztec-sun-skull.jpeg"
               alt="Aztec sun-skull carving"
               fill
-              sizes="128px"
+              sizes="144px"
               className="rounded-full object-cover"
             />
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-zinc-100">
+          <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">
             Ofrendas: A Market Event
           </h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-base text-zinc-500">
             The Regent Theater, LA &middot; Sunday, September 20, 2026
           </p>
         </div>
 
-        <div className="space-y-4 text-left text-sm leading-relaxed text-zinc-400 sm:text-base">
+        <div className="space-y-4 text-left text-base leading-relaxed text-zinc-400">
           <p>
             Ofrendas is an immersive market experience by LosGothsCo, born
             from LA&apos;s Latino goth community. We thoughtfully curate
@@ -220,7 +220,7 @@ export default function OfrendasVendorApplicationPage() {
           <ApplicationForm />
         </div>
 
-        <div className="border-t border-zinc-800 pt-6 text-center text-xs leading-relaxed text-zinc-500">
+        <div className="border-t border-zinc-800 pt-6 text-center text-sm leading-relaxed text-zinc-500">
           <p className="font-medium uppercase tracking-widest text-zinc-500">
             What happens next
           </p>
