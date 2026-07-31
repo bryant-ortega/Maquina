@@ -57,6 +57,9 @@ type ExpenseRow = {
   item: string
   qty: number
   price: number
+  /** Set for rows auto-populated from a vendor assigned to the event
+   *  (event_vendors, migration 0031/0034). Null for freeform lines. */
+  vendor_id: string | null
 }
 
 type TierRow = {
@@ -73,6 +76,9 @@ export type BudgetCompareProps = {
   finalExpenses: ExpenseRow[]
   estimatedTiers: TierRow[]
   finalTiers: TierRow[]
+  /** Vendors assigned to this event (event_vendors) — used to label
+   *  vendor-linked expense rows by name instead of item text. */
+  eventVendors: Array<{ vendor_id: string; company_name: string }>
 }
 
 // ---------------------------------------------------------------------------
@@ -87,6 +93,7 @@ export function BudgetCompare({
   finalExpenses,
   estimatedTiers,
   finalTiers,
+  eventVendors,
 }: BudgetCompareProps) {
   // Compute summaries on both sides — we feed identical inputs into the
   // same pure helper, so the variance display is bit-for-bit consistent
@@ -138,7 +145,11 @@ export function BudgetCompare({
       <TiersSection est={estimatedTiers} fin={finalTiers} />
 
       {/* Expenses, grouped by category */}
-      <ExpensesSection est={estimatedExpenses} fin={finalExpenses} />
+      <ExpensesSection
+        est={estimatedExpenses}
+        fin={finalExpenses}
+        eventVendors={eventVendors}
+      />
     </div>
   )
 }
@@ -331,10 +342,16 @@ function TiersSection({ est, fin }: { est: TierRow[]; fin: TierRow[] }) {
 function ExpensesSection({
   est,
   fin,
+  eventVendors,
 }: {
   est: ExpenseRow[]
   fin: ExpenseRow[]
+  eventVendors: Array<{ vendor_id: string; company_name: string }>
 }) {
+  const vendorNameById = new Map(
+    eventVendors.map((v) => [v.vendor_id, v.company_name])
+  )
+
   return (
     <section className="space-y-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-200">
@@ -347,28 +364,91 @@ function ExpensesSection({
         const f = inCat(fin)
         if (e.length === 0 && f.length === 0) return null
 
-        // Match by item name within the category. Items present on only
-        // one side render with a "—" on the other (subtotal still picks
-        // them up, so the variance reflects added/removed lines).
-        const items = new Set<string>()
-        for (const r of e) items.add(r.item)
-        for (const r of f) items.add(r.item)
+        let lineRows: Array<{
+          label: string
+          est: number | null
+          fin: number | null
+          betterWhen: 'lower'
+          format: 'usdc'
+        }>
 
-        const orderedItems = Array.from(items).sort((a, b) =>
-          a.localeCompare(b)
-        )
+        if (cat === 'vendors') {
+          // Vendor-linked rows match by vendor_id (name comes first in
+          // the label, per Chase); freeform vendor-cost lines (no
+          // roster vendor) still match by item name, same as every
+          // other category.
+          const eLinked = e.filter((r) => r.vendor_id)
+          const fLinked = f.filter((r) => r.vendor_id)
+          const eFreeform = e.filter((r) => !r.vendor_id)
+          const fFreeform = f.filter((r) => !r.vendor_id)
 
-        const lineRows = orderedItems.map((item) => {
-          const eRow = e.find((r) => r.item === item)
-          const fRow = f.find((r) => r.item === item)
-          return {
-            label: item,
-            est: eRow ? eRow.qty * eRow.price : null,
-            fin: fRow ? fRow.qty * fRow.price : null,
-            betterWhen: 'lower' as const,
-            format: 'usdc' as const,
-          }
-        })
+          const vendorIds = new Set<string>()
+          for (const r of eLinked) vendorIds.add(r.vendor_id as string)
+          for (const r of fLinked) vendorIds.add(r.vendor_id as string)
+
+          const linkedRows = Array.from(vendorIds)
+            .sort((a, b) =>
+              (vendorNameById.get(a) ?? '').localeCompare(
+                vendorNameById.get(b) ?? ''
+              )
+            )
+            .map((vid) => {
+              const eRow = eLinked.find((r) => r.vendor_id === vid)
+              const fRow = fLinked.find((r) => r.vendor_id === vid)
+              const name = vendorNameById.get(vid) ?? 'Vendor'
+              const type = eRow?.item || fRow?.item || ''
+              return {
+                label: type ? `${name} — ${type}` : name,
+                est: eRow ? eRow.qty * eRow.price : null,
+                fin: fRow ? fRow.qty * fRow.price : null,
+                betterWhen: 'lower' as const,
+                format: 'usdc' as const,
+              }
+            })
+
+          const freeformItems = new Set<string>()
+          for (const r of eFreeform) freeformItems.add(r.item)
+          for (const r of fFreeform) freeformItems.add(r.item)
+          const freeformRows = Array.from(freeformItems)
+            .sort((a, b) => a.localeCompare(b))
+            .map((item) => {
+              const eRow = eFreeform.find((r) => r.item === item)
+              const fRow = fFreeform.find((r) => r.item === item)
+              return {
+                label: item,
+                est: eRow ? eRow.qty * eRow.price : null,
+                fin: fRow ? fRow.qty * fRow.price : null,
+                betterWhen: 'lower' as const,
+                format: 'usdc' as const,
+              }
+            })
+
+          lineRows = [...linkedRows, ...freeformRows]
+        } else {
+          // Match by item name within the category. Items present on
+          // only one side render with a "—" on the other (subtotal
+          // still picks them up, so the variance reflects added/removed
+          // lines).
+          const items = new Set<string>()
+          for (const r of e) items.add(r.item)
+          for (const r of f) items.add(r.item)
+
+          const orderedItems = Array.from(items).sort((a, b) =>
+            a.localeCompare(b)
+          )
+
+          lineRows = orderedItems.map((item) => {
+            const eRow = e.find((r) => r.item === item)
+            const fRow = f.find((r) => r.item === item)
+            return {
+              label: item,
+              est: eRow ? eRow.qty * eRow.price : null,
+              fin: fRow ? fRow.qty * fRow.price : null,
+              betterWhen: 'lower' as const,
+              format: 'usdc' as const,
+            }
+          })
+        }
 
         const eSubtotal = e.reduce((acc, r) => acc + r.qty * r.price, 0)
         const fSubtotal = f.reduce((acc, r) => acc + r.qty * r.price, 0)

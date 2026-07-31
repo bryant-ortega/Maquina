@@ -70,6 +70,13 @@ type ExpenseRow = {
   payment_status: PaymentStatus
   /** Freeform method text. Required when payment_status='paid'. */
   payment_method: string
+  /**
+   * Set when this row is auto-populated from a vendor assigned to the
+   * event (event_vendors, migration 0031/0034). Null for freeform
+   * expense lines not tied to a roster vendor. Only meaningful within
+   * category='vendors', but carried on every row for a uniform shape.
+   */
+  vendor_id: string | null
 }
 
 type TierRow = {
@@ -121,6 +128,7 @@ export type BudgetFormProps = {
     price: string
     payment_status: PaymentStatus
     payment_method: string
+    vendor_id: string | null
   }>
   initialTiers: Array<{
     id: string
@@ -128,6 +136,12 @@ export type BudgetFormProps = {
     price: string
     sold: string
   }>
+  /**
+   * Vendors assigned to this event (event_vendors, migration 0031). One
+   * row is guaranteed to exist per vendor here in the 'vendors' expense
+   * category — see the seeding logic in the component body.
+   */
+  eventVendors: Array<{ vendor_id: string; company_name: string }>
 }
 
 // ---------------------------------------------------------------------------
@@ -140,6 +154,7 @@ export function BudgetForm({
   budget,
   initialExpenses,
   initialTiers,
+  eventVendors,
 }: BudgetFormProps) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -147,8 +162,8 @@ export function BudgetForm({
   const [topSuccess, setTopSuccess] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  const [expenses, setExpenses] = useState<ExpenseRow[]>(() =>
-    initialExpenses.map((e) => ({
+  const [expenses, setExpenses] = useState<ExpenseRow[]>(() => {
+    const loaded = initialExpenses.map((e) => ({
       uid: crypto.randomUUID(),
       id: e.id,
       category: normalizeCategory(e.category),
@@ -157,8 +172,30 @@ export function BudgetForm({
       price: e.price,
       payment_status: e.payment_status,
       payment_method: e.payment_method,
+      vendor_id: e.vendor_id,
     }))
-  )
+    // Every vendor assigned to the event should have a row here, even on
+    // first load before an admin has touched anything — auto-populate a
+    // blank one (qty 1, price 0, no type yet) for any assigned vendor
+    // that doesn't already have a linked row.
+    const linkedVendorIds = new Set(
+      loaded.filter((e) => e.vendor_id).map((e) => e.vendor_id)
+    )
+    const missingVendorRows: ExpenseRow[] = eventVendors
+      .filter((v) => !linkedVendorIds.has(v.vendor_id))
+      .map((v) => ({
+        uid: crypto.randomUUID(),
+        id: '',
+        category: 'vendors' as ExpenseCategory,
+        item: '',
+        qty: '1',
+        price: '0',
+        payment_status: 'unpaid' as PaymentStatus,
+        payment_method: '',
+        vendor_id: v.vendor_id,
+      }))
+    return [...loaded, ...missingVendorRows]
+  })
 
   const [tiers, setTiers] = useState<TierRow[]>(() =>
     initialTiers.map((t) => ({
@@ -322,6 +359,7 @@ export function BudgetForm({
         price: '0',
         payment_status: 'unpaid',
         payment_method: '',
+        vendor_id: null,
       },
     ])
   }
@@ -376,9 +414,11 @@ export function BudgetForm({
       (ex) => (Number(ex.qty) || 0) > 0
     )
 
-    // Light client-side guard: every kept expense needs a non-empty item.
+    // Light client-side guard: every kept expense needs a non-empty item —
+    // except vendor-linked rows, whose "name" comes from the vendor
+    // (item there is the optional freeform Type field, e.g. "Robot").
     for (const ex of keptExpenses) {
-      if (!ex.item.trim()) {
+      if (!ex.vendor_id && !ex.item.trim()) {
         setTopError('Every expense line needs a name.')
         return
       }
@@ -413,6 +453,7 @@ export function BudgetForm({
         price: Number(ex.price) || 0,
         payment_status: ex.payment_status,
         payment_method: ex.payment_method.trim(),
+        vendor_id: ex.vendor_id,
       })),
       tiers: tiers.map((t) => ({
         id: t.id || '',
@@ -457,6 +498,10 @@ export function BudgetForm({
 
   // ---------------------------------------------------------------- Render
 
+  const vendorNameById = new Map(
+    eventVendors.map((v) => [v.vendor_id, v.company_name])
+  )
+
   return (
     <form onSubmit={onSubmit} className="space-y-8">
       {topError && (
@@ -491,6 +536,13 @@ export function BudgetForm({
         <div className="space-y-6">
           {EXPENSE_CATEGORY_ORDER.map((cat) => {
             const rows = expenses.filter((e) => e.category === cat)
+            // Vendors category: rows linked to a roster vendor get an
+            // extra read-only "Vendor" column (name first, per Chase),
+            // and the Item field is repurposed as a freeform "Type"
+            // (e.g. "Robot", "Flowers", "360 Video"). Freeform vendor
+            // rows (no vendor_id) render exactly like every other
+            // category's rows.
+            const isVendorCat = cat === 'vendors'
             return (
               <div
                 key={cat}
@@ -518,7 +570,12 @@ export function BudgetForm({
                   <table className="w-full text-sm">
                     <thead className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                       <tr className="border-b border-zinc-100 dark:border-zinc-900">
-                        <th className="px-4 py-2 font-medium">Item</th>
+                        {isVendorCat && (
+                          <th className="px-4 py-2 font-medium">Vendor</th>
+                        )}
+                        <th className="px-4 py-2 font-medium">
+                          {isVendorCat ? 'Type' : 'Item'}
+                        </th>
                         <th className="w-20 px-4 py-2 font-medium">Qty</th>
                         <th className="w-28 px-4 py-2 font-medium">Price</th>
                         {isFinal && (
@@ -562,6 +619,18 @@ export function BudgetForm({
                                 : undefined
                             }
                           >
+                            {isVendorCat && (
+                              <td className="px-4 py-2 font-medium text-zinc-900 dark:text-zinc-100">
+                                {row.vendor_id
+                                  ? (vendorNameById.get(row.vendor_id) ??
+                                     'Vendor')
+                                  : (
+                                    <span className="font-normal text-zinc-400 dark:text-zinc-600">
+                                      —
+                                    </span>
+                                  )}
+                              </td>
+                            )}
                             <td className="px-4 py-2">
                               <input
                                 value={row.item}
@@ -570,7 +639,11 @@ export function BudgetForm({
                                     item: e.target.value,
                                   })
                                 }
-                                placeholder={`${EXPENSE_CATEGORY_LABELS[cat]} item`}
+                                placeholder={
+                                  isVendorCat
+                                    ? 'Type (e.g. Robot, Flowers, 360 Video)'
+                                    : `${EXPENSE_CATEGORY_LABELS[cat]} item`
+                                }
                                 className={`${inputClass(
                                   fieldErrors[`expenses.${idx}.item`]
                                 )} ${willBeRemoved ? 'line-through' : ''}`}
@@ -669,7 +742,12 @@ export function BudgetForm({
                               <button
                                 type="button"
                                 onClick={() => removeExpense(row.uid)}
-                                aria-label={`Remove ${row.item || 'line'}`}
+                                aria-label={`Remove ${
+                                  (row.vendor_id &&
+                                    vendorNameById.get(row.vendor_id)) ||
+                                  row.item ||
+                                  'line'
+                                }`}
                                 className="rounded-md p-1 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-900 dark:hover:text-zinc-200"
                               >
                                 ×

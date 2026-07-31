@@ -44,6 +44,18 @@ export default async function FinanceEventBudgetPage({
 
   if (!estimated) notFound()
 
+  const { data: eventVendorRows } = await supabase
+    .from('event_vendors')
+    .select('vendor_id, vendors(company_name)')
+    .eq('event_id', id)
+  const eventVendors = (eventVendorRows ?? []).map((r) => {
+    const vendor = Array.isArray(r.vendors) ? r.vendors[0] : r.vendors
+    return {
+      vendor_id: r.vendor_id as string,
+      company_name: (vendor?.company_name as string | undefined) ?? 'Vendor',
+    }
+  })
+
   const { data: finalBudget } = await supabase
     .from('event_budgets')
     .select(
@@ -96,7 +108,7 @@ export default async function FinanceEventBudgetPage({
     ] = await Promise.all([
       supabase
         .from('event_budget_expenses')
-        .select('category, item, qty, price')
+        .select('category, item, qty, price, vendor_id')
         .eq('budget_id', estimated.id)
         .order('category', { ascending: true })
         .order('item', { ascending: true }),
@@ -107,7 +119,7 @@ export default async function FinanceEventBudgetPage({
         .order('tier_number', { ascending: true }),
       supabase
         .from('event_budget_expenses')
-        .select('category, item, qty, price')
+        .select('category, item, qty, price, vendor_id')
         .eq('budget_id', finalBudget.id)
         .order('category', { ascending: true })
         .order('item', { ascending: true }),
@@ -127,6 +139,7 @@ export default async function FinanceEventBudgetPage({
             event={eventCommon}
             estimated={scalars(estimated)}
             final={scalars(finalBudget)}
+            eventVendors={eventVendors}
             estimatedExpenses={(estExpenses ?? []).map(mapExpense)}
             finalExpenses={(finalExpenses ?? []).map(mapExpense)}
             estimatedTiers={(estTiers ?? []).map(mapTier)}
@@ -309,12 +322,19 @@ function scalars(b: BudgetRow) {
   }
 }
 
-function mapExpense(e: { category: string; item: string; qty: number | null; price: number | null }) {
+function mapExpense(e: {
+  category: string
+  item: string
+  qty: number | null
+  price: number | null
+  vendor_id: string | null
+}) {
   return {
     category: e.category,
     item: e.item,
     qty: Number(e.qty ?? 0),
     price: Number(e.price ?? 0),
+    vendor_id: e.vendor_id ?? null,
   }
 }
 

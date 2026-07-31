@@ -45,7 +45,22 @@ const ExpenseInput = z.object({
     .or(z.literal(''))
     .optional(),
   category: z.enum(EXPENSE_CATEGORY_ORDER),
-  item: z.string().trim().min(1, 'Item name is required').max(120),
+  // Vendor-linked rows (vendor_id set) get their "name" from the vendor —
+  // item there is the optional freeform Type field (e.g. "Robot"), so it
+  // may be blank. Freeform rows (vendor_id null) still require a name;
+  // enforced below in the handler, not here, since that check needs to
+  // see vendor_id too.
+  item: z.string().trim().max(120),
+  /**
+   * Set when this row is auto-populated from a vendor assigned to the
+   * event (event_vendors) — see migration 0034. Null for freeform
+   * expense lines not tied to a roster vendor.
+   */
+  vendor_id: z
+    .string()
+    .regex(UUID_LIKE, 'Invalid vendor id')
+    .nullable()
+    .optional(),
   // DB CHECK is `qty > 0` (strict), so reject 0 / empty before we ever
   // hit Postgres. Empty/blank coerces to NaN here so Zod surfaces a clean
   // field error instead of a raw constraint violation.
@@ -196,6 +211,19 @@ export async function updateBudget(
     }
   }
   const data = parsed.data
+
+  // 3.0 Freeform expense lines (no vendor_id) still need a real name —
+  // vendor-linked rows get theirs from the vendor, so their item field
+  // (repurposed as the freeform Type) can be blank.
+  for (const e of data.expenses) {
+    if (!e.vendor_id && e.item.trim().length === 0) {
+      return {
+        ok: false,
+        reason: 'invalid',
+        issues: [{ path: 'expenses', message: 'Every expense line needs a name.' }],
+      }
+    }
+  }
 
   // 3. Tier numbers must be unique within the form payload (otherwise the
   //    UNIQUE (budget_id, tier_number) constraint would blow up at insert
@@ -364,6 +392,7 @@ export async function updateBudget(
               price: e.price,
               payment_status: e.payment_status,
               payment_method: e.payment_method,
+              vendor_id: e.vendor_id ?? null,
             }))
           )
         : Promise.resolve({ error: null }),
@@ -377,6 +406,7 @@ export async function updateBudget(
               price: e.price,
               payment_status: e.payment_status,
               payment_method: e.payment_method,
+              vendor_id: e.vendor_id ?? null,
             }))
           )
         : Promise.resolve({ error: null }),
@@ -580,7 +610,7 @@ export async function actualizeEvent(
   // 7. Copy expenses.
   const { data: srcExpenses, error: seErr } = await admin
     .from('event_budget_expenses')
-    .select('category, item, qty, price')
+    .select('category, item, qty, price, vendor_id')
     .eq('budget_id', estBudget.id)
   if (seErr) {
     return { ok: false, reason: 'db_failed', message: seErr.message }
@@ -595,6 +625,7 @@ export async function actualizeEvent(
           item: e.item as string,
           qty: e.qty as number,
           price: e.price as number,
+          vendor_id: (e.vendor_id as string | null) ?? null,
         }))
       )
     if (ieErr) {

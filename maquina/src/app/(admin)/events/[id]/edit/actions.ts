@@ -577,7 +577,29 @@ export async function updateEvent(
   // correct approach for a plain checklist with no per-row fields to
   // preserve: delete everything for this event, re-insert the current
   // set. Cheap at this table's size and avoids a three-way diff.
+  //
+  // Any vendor dropped from this set also loses its linked budget row
+  // (migration 0034's event_budget_expenses.vendor_id) on EVERY budget
+  // for this event — Estimated and Final alike — per Chase: a budget
+  // row for a vendor should disappear once that vendor is no longer
+  // assigned to the event. Fetch the current set first so we know which
+  // vendor_ids are actually being removed (not just the whole set).
   {
+    const { data: currentVendorRows, error: curVendorsErr } = await admin
+      .from('event_vendors')
+      .select('vendor_id')
+      .eq('event_id', data.id)
+    if (curVendorsErr) {
+      return { ok: false, reason: 'db_failed', message: curVendorsErr.message }
+    }
+    const currentVendorIds = new Set(
+      (currentVendorRows ?? []).map((r) => r.vendor_id as string)
+    )
+    const nextVendorIds = new Set(data.vendor_ids)
+    const removedVendorIds = Array.from(currentVendorIds).filter(
+      (vid) => !nextVendorIds.has(vid)
+    )
+
     const { error: delVendorsErr } = await admin
       .from('event_vendors')
       .delete()
@@ -594,6 +616,31 @@ export async function updateEvent(
       )
       if (insVendorsErr) {
         return { ok: false, reason: 'db_failed', message: insVendorsErr.message }
+      }
+    }
+
+    if (removedVendorIds.length > 0) {
+      const { data: eventBudgetRows, error: ebIdsErr } = await admin
+        .from('event_budgets')
+        .select('id')
+        .eq('event_id', data.id)
+      if (ebIdsErr) {
+        return { ok: false, reason: 'db_failed', message: ebIdsErr.message }
+      }
+      const budgetIds = (eventBudgetRows ?? []).map((b) => b.id as string)
+      if (budgetIds.length > 0) {
+        const { error: delVendorExpErr } = await admin
+          .from('event_budget_expenses')
+          .delete()
+          .in('budget_id', budgetIds)
+          .in('vendor_id', removedVendorIds)
+        if (delVendorExpErr) {
+          return {
+            ok: false,
+            reason: 'db_failed',
+            message: delVendorExpErr.message,
+          }
+        }
       }
     }
   }

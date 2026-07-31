@@ -59,6 +59,23 @@ export default async function BudgetPage({
 
   if (!estimated) notFound()
 
+  // Vendors assigned to this event (migration 0031) — shared between
+  // Estimated and Final (event_vendors is keyed by event_id, not budget),
+  // so this one fetch feeds both the editable views and the compare view.
+  // Drives the budget's "Vendors" expense category: one row per assigned
+  // vendor, name auto-populated, admin fills in Rate + Type.
+  const { data: eventVendorRows } = await supabase
+    .from('event_vendors')
+    .select('vendor_id, vendors(company_name)')
+    .eq('event_id', id)
+  const eventVendors = (eventVendorRows ?? []).map((r) => {
+    const vendor = Array.isArray(r.vendors) ? r.vendors[0] : r.vendors
+    return {
+      vendor_id: r.vendor_id as string,
+      company_name: (vendor?.company_name as string | undefined) ?? 'Vendor',
+    }
+  })
+
   // Final is optional — only present once the admin has actualized.
   const { data: finalBudget } = await supabase
     .from('event_budgets')
@@ -141,7 +158,7 @@ export default async function BudgetPage({
     ] = await Promise.all([
       supabase
         .from('event_budget_expenses')
-        .select('id, category, item, qty, price')
+        .select('id, category, item, qty, price, vendor_id')
         .eq('budget_id', estimated.id)
         .order('category', { ascending: true })
         .order('item', { ascending: true }),
@@ -152,7 +169,7 @@ export default async function BudgetPage({
         .order('tier_number', { ascending: true }),
       supabase
         .from('event_budget_expenses')
-        .select('id, category, item, qty, price')
+        .select('id, category, item, qty, price, vendor_id')
         .eq('budget_id', finalBudget.id)
         .order('category', { ascending: true })
         .order('item', { ascending: true }),
@@ -210,17 +227,20 @@ export default async function BudgetPage({
               bar_per_head: Number(finalBudget.bar_per_head ?? 24),
               bar_pct: Number(finalBudget.bar_pct ?? 0.16),
             }}
+            eventVendors={eventVendors}
             estimatedExpenses={(estExpenses ?? []).map((e) => ({
               category: e.category as string,
               item: e.item as string,
               qty: Number(e.qty ?? 0),
               price: Number(e.price ?? 0),
+              vendor_id: (e.vendor_id as string | null) ?? null,
             }))}
             finalExpenses={(finalExpenses ?? []).map((e) => ({
               category: e.category as string,
               item: e.item as string,
               qty: Number(e.qty ?? 0),
               price: Number(e.price ?? 0),
+              vendor_id: (e.vendor_id as string | null) ?? null,
             }))}
             estimatedTiers={(estTiers ?? []).map((t) => ({
               tier_number: t.tier_number as number,
@@ -245,7 +265,7 @@ export default async function BudgetPage({
     supabase
       .from('event_budget_expenses')
       .select(
-        'id, category, item, qty, price, payment_status, payment_method'
+        'id, category, item, qty, price, payment_status, payment_method, vendor_id'
       )
       .eq('budget_id', activeBudget.id)
       .order('category', { ascending: true })
@@ -312,6 +332,7 @@ export default async function BudgetPage({
                 ? ''
                 : String(activeBudget.elvis_payment_method),
           }}
+          eventVendors={eventVendors}
           initialExpenses={(expenses ?? []).map((e) => ({
             id: e.id as string,
             category: e.category as string,
@@ -321,6 +342,7 @@ export default async function BudgetPage({
             payment_status: normalizePaymentStatus(e.payment_status),
             payment_method:
               e.payment_method == null ? '' : String(e.payment_method),
+            vendor_id: (e.vendor_id as string | null) ?? null,
           }))}
           initialTiers={(tiers ?? []).map((t) => ({
             id: t.id as string,
