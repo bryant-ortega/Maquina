@@ -54,6 +54,15 @@ type SlotRow = {
   end_time: string
 }
 
+type VendorRow = {
+  uid: string // local React key; not sent
+  vendor_id: string
+}
+
+function newVendorRow(): VendorRow {
+  return { uid: crypto.randomUUID(), vendor_id: '' }
+}
+
 const TODAY_ISO = () => new Date().toISOString().slice(0, 10)
 
 function newSlot(
@@ -163,13 +172,22 @@ export function NewEventForm({
   const [slots, setSlots] = useState<SlotRow[]>([{ ...newSlot(1, 1, 'open', '21:00'), dj_id: tbdDjId }])
 
   // -------- Vendors -------------------------------------------------------
-  // Plain checklist — no rate/time/slot fields, just which vendors are
+  // Same shape as the DJ slots section: one dropdown row at a time, "+ Add
+  // vendor" appends another. No rate/time fields — just which vendors are
   // working this event so Send Run of Show knows who to email.
-  const [vendorIds, setVendorIds] = useState<string[]>([])
+  const [vendorRows, setVendorRows] = useState<VendorRow[]>([newVendorRow()])
 
-  function toggleVendor(id: string) {
-    setVendorIds((prev) =>
-      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+  function addVendorRow() {
+    setVendorRows((prev) => [...prev, newVendorRow()])
+  }
+
+  function removeVendorRow(uid: string) {
+    setVendorRows((prev) => prev.filter((r) => r.uid !== uid))
+  }
+
+  function updateVendorRow(uid: string, vendor_id: string) {
+    setVendorRows((prev) =>
+      prev.map((r) => (r.uid === uid ? { ...r, vendor_id } : r))
     )
   }
 
@@ -257,7 +275,9 @@ export function NewEventForm({
         start_time: s.start_time,
         end_time: s.end_time,
       })),
-      vendor_ids: vendorIds,
+      vendor_ids: Array.from(
+        new Set(vendorRows.map((r) => r.vendor_id).filter((id) => id !== ''))
+      ),
     }
 
     startTransition(async () => {
@@ -967,17 +987,59 @@ export function NewEventForm({
             No vendors on roster yet.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 md:grid-cols-3">
-            {vendors.map((v) => (
-              <Checkbox
-                key={v.id}
-                label={v.company_name}
-                checked={vendorIds.includes(v.id)}
-                onChange={() => toggleVendor(v.id)}
-                disabled={pending}
-              />
-            ))}
-          </div>
+          <>
+            {vendorRows.length === 0 ? (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                No vendors added yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {vendorRows.map((row) => (
+                  <div
+                    key={row.uid}
+                    className="flex flex-wrap items-end gap-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50"
+                  >
+                    <div className="min-w-[200px] flex-1">
+                      <label className={miniLabel}>Vendor</label>
+                      <select
+                        value={row.vendor_id}
+                        onChange={(e) =>
+                          updateVendorRow(row.uid, e.target.value)
+                        }
+                        className={inputClass}
+                        disabled={pending}
+                      >
+                        <option value="">— Select vendor —</option>
+                        {vendors.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.company_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeVendorRow(row.uid)}
+                      className="pb-2 text-xs text-red-600 hover:underline dark:text-red-400"
+                      disabled={pending}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={addVendorRow}
+              className="mt-3 text-xs font-medium text-zinc-700 hover:underline dark:text-zinc-300"
+              disabled={pending}
+            >
+              + Add vendor
+            </button>
+          </>
         )}
       </Section>
 
