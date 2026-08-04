@@ -142,6 +142,27 @@ function button(href: string, label: string): string {
   return `<a href="${href}" style="display:inline-block;background:#18181b;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:10px 18px;border-radius:8px;">${label}</a>`
 }
 
+/**
+ * Escapes user-supplied text before it's interpolated into an HTML
+ * email body. Every sender below deals in free-text fields DJs,
+ * vendors, and Ofrendas applicants typed into a public form (name,
+ * company name, business name) — none of that is safe to drop
+ * straight into `bodyHtml`/`heading` template strings unescaped. This
+ * was already reinvented twice (runofshow/actions.ts,
+ * lib/calendar-invite.ts) as a local, unexported copy; this is now
+ * the one shared version — the two duplicates were pointed at this
+ * one instead of removed outright, minimizing the change to those
+ * already-working files.
+ */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // ---------------------------------------------------------------------------
 // Typed senders. Each builds content + delegates to sendEmail. Callers
 // just pass the recipient + name.
@@ -154,7 +175,7 @@ export async function sendDjRegistrationConfirmation(args: {
 }): Promise<SendResult> {
   const uploadUrl = absoluteUrl('/dj/upload-w9')
   const html = shell({
-    heading: `Welcome, ${args.djName}`,
+    heading: `Welcome, ${escapeHtml(args.djName)}`,
     bodyHtml: `
       <p style="margin:0 0 12px;">Your DJ profile with LosGothsCo is set up. 🎧</p>
       <p style="margin:0 0 16px;">One last step: upload your W-9 so we can keep you on file for bookings and payments.</p>
@@ -177,7 +198,7 @@ export async function sendVendorRegistrationConfirmation(args: {
 }): Promise<SendResult> {
   const uploadUrl = absoluteUrl('/vendor/upload-w9')
   const html = shell({
-    heading: `Welcome, ${args.companyName}`,
+    heading: `Welcome, ${escapeHtml(args.companyName)}`,
     bodyHtml: `
       <p style="margin:0 0 12px;">Your vendor profile with LosGothsCo is set up.</p>
       <p style="margin:0 0 16px;">One last step: upload your W-9 so we can keep you on file for payments.</p>
@@ -205,7 +226,7 @@ export async function sendW9Reminder(args: {
   const html = shell({
     heading: 'Quick reminder: your W-9',
     bodyHtml: `
-      <p style="margin:0 0 12px;">Hi ${args.name},</p>
+      <p style="margin:0 0 12px;">Hi ${escapeHtml(args.name)},</p>
       <p style="margin:0 0 16px;">We still don't have your W-9 on file. It only takes a minute and keeps your payments moving without delay.</p>
       <p style="margin:0 0 16px;">${button(uploadUrl, 'Upload your W-9')}</p>
       <p style="margin:0;color:#71717a;font-size:13px;">If the button doesn't work, paste this into your browser:<br>${uploadUrl}</p>
@@ -236,8 +257,8 @@ export async function sendOfrendasVendorApplicationReceipt(args: {
   const html = shell({
     heading: 'We got your Ofrendas vendor application',
     bodyHtml: `
-      <p style="margin:0 0 12px;">Hi ${args.contactName},</p>
-      <p style="margin:0 0 12px;">Thanks for applying to be a vendor at Ofrendas, LosGothsCo's market event. We've got your application for <strong>${args.businessName}</strong> on file.</p>
+      <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
+      <p style="margin:0 0 12px;">Thanks for applying to be a vendor at Ofrendas, LosGothsCo's market event. We've got your application for <strong>${escapeHtml(args.businessName)}</strong> on file.</p>
       <p style="margin:0 0 12px;">We review applications on a rolling basis and will follow up by email if it's a fit for the market. Follow along at <a href="${igUrl}" style="color:#18181b;">@ofrendasmarket</a> for updates, and reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a> if you have any questions.</p>
       <p style="margin:0 0 16px;">Gracias,<br>LosGothsCo</p>
       <p style="margin:0;font-size:12px;color:#a1a1aa;">This is a do-not-reply address — for questions, email <a href="mailto:${supportEmail}" style="color:#a1a1aa;">${supportEmail}</a> instead.</p>
@@ -267,8 +288,8 @@ export async function sendOfrendasVendorApprovalEmail(args: {
   const html = shell({
     heading: `You're approved for Ofrendas 🖤`,
     bodyHtml: `
-      <p style="margin:0 0 12px;">Hi ${args.contactName},</p>
-      <p style="margin:0 0 12px;">Good news — <strong>${args.businessName}</strong> is approved as a vendor for <strong>Ofrendas: A Community Market</strong> at The Regent Theater, LA, on Sunday, September 20, 2026.</p>
+      <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
+      <p style="margin:0 0 12px;">Good news — <strong>${escapeHtml(args.businessName)}</strong> is approved as a vendor for <strong>Ofrendas: A Community Market</strong> at The Regent Theater, LA, on Sunday, September 20, 2026.</p>
       <p style="margin:0 0 12px;">Next step is securing your space: we'll follow up separately with payment instructions to lock it in. Once payment is received you're fully confirmed.</p>
       <p style="margin:0 0 16px;">Questions in the meantime? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
       <p style="margin:0;">Gracias,<br>LosGothsCo</p>
@@ -296,8 +317,8 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
   const html = shell({
     heading: `You're confirmed for Ofrendas 🖤`,
     bodyHtml: `
-      <p style="margin:0 0 12px;">Hi ${args.contactName},</p>
-      <p style="margin:0 0 12px;">We've received payment for <strong>${args.businessName}</strong>'s space at <strong>Ofrendas: A Community Market</strong> — The Regent Theater, LA, Sunday, September 20, 2026. You're all set!</p>
+      <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
+      <p style="margin:0 0 12px;">We've received payment for <strong>${escapeHtml(args.businessName)}</strong>'s space at <strong>Ofrendas: A Community Market</strong> — The Regent Theater, LA, Sunday, September 20, 2026. You're all set!</p>
       <p style="margin:0 0 12px;">We'll be in touch closer to the date with load-in time and any final logistics. In the meantime, follow along at <a href="https://instagram.com/ofrendasmarket" style="color:#18181b;">@ofrendasmarket</a>.</p>
       <p style="margin:0 0 16px;">Questions? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
       <p style="margin:0;">Gracias,<br>LosGothsCo</p>

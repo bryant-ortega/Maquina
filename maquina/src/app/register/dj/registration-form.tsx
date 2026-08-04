@@ -26,7 +26,7 @@ import {
 const FormSchema = z.object({
   dj_name: z.string().trim().min(1, 'DJ name is required').max(100),
   government_name: z.string().trim().min(1, 'Legal name is required').max(200),
-  email: z.string().trim().email('Enter a valid email'),
+  email: z.string().trim().max(254, 'Enter a valid email').email('Enter a valid email'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

@@ -1,10 +1,17 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { sendDjRegistrationConfirmation } from '@/lib/email'
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import {
+  checkRateLimit,
+  formatRetryAfter,
+  getClientIp,
+  RATE_LIMITS,
+} from '@/lib/rate-limit'
 
 /**
  * Server action for /register/dj.
@@ -22,12 +29,16 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
  *   5. Sign the new user in via the SSR client (sets auth cookies on
  *      this response), then redirect to /dj/upload-w9 so they can finish
  *      onboarding. No email round-trip.
+ *
+ * Rate limited to 5 attempts / 15 min by IP — same tier as login, to
+ * stop scripted account-creation spam. Checked before the "already
+ * registered" DB lookup even runs.
  */
 
 const RegisterDjInput = z.object({
   dj_name: z.string().trim().min(1, 'DJ name is required').max(100),
   government_name: z.string().trim().min(1, 'Legal name is required').max(200),
-  email: z.string().trim().toLowerCase().email('Invalid email'),
+  email: z.string().trim().toLowerCase().max(254, 'Invalid email').email('Invalid email'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -48,11 +59,22 @@ export type RegisterDjResult =
   | { ok: false; reason: 'create_failed'; message: string }
   | { ok: false; reason: 'orphan_wrong_password' }
   | { ok: false; reason: 'orphan_wrong_role' }
+  | { ok: false; reason: 'rate_limited'; message: string }
 // On success the action redirects, so the form never sees an `ok: true`.
 
 export async function registerDj(
   formData: FormData
 ): Promise<RegisterDjResult | never> {
+  const ip = getClientIp(await headers())
+  const ipLimit = await checkRateLimit(`register:ip:${ip}`, RATE_LIMITS.AUTH)
+  if (!ipLimit.allowed) {
+    return {
+      ok: false,
+      reason: 'rate_limited',
+      message: `Too many registration attempts. Try again in ${formatRetryAfter(ipLimit.retryAfterSeconds)}.`,
+    }
+  }
+
   const raw = {
     dj_name: formData.get('dj_name'),
     government_name: formData.get('government_name'),
@@ -141,13 +163,17 @@ export async function registerDj(
   })
   if (djErr) {
     // Best-effort cleanup of the half-created auth user so the same email
-    // can be retried. Ignore the cleanup error — surfacing the original
-    // failure is more useful.
+    // can be retried.
     await admin.auth.admin.deleteUser(created.user.id)
+    // Log the real Postgres error server-side (constraint/column names
+    // aren't secret, but this is a public, unauthenticated endpoint —
+    // no reason to hand a stranger raw DB error text instead of a
+    // generic message).
+    console.error('[register/dj] djs insert failed:', djErr.message)
     return {
       ok: false,
       reason: 'create_failed',
-      message: djErr.message,
+      message: 'Something went wrong creating your account. Please try again in a moment.',
     }
   }
 
@@ -250,7 +276,12 @@ async function reclaimOrphanAccount(
     region: input.region,
   })
   if (djErr) {
-    return { ok: false, reason: 'create_failed', message: djErr.message }
+    console.error('[register/dj] djs insert failed (orphan reclaim):', djErr.message)
+    return {
+      ok: false,
+      reason: 'create_failed',
+      message: 'Something went wrong creating your account. Please try again in a moment.',
+    }
   }
 
   try {

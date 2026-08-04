@@ -42,7 +42,14 @@ export async function POST(request: NextRequest) {
       ? (body as { storagePath: unknown }).storagePath
       : null
 
-  if (typeof storagePath !== 'string' || storagePath.length === 0) {
+  // Real paths are always "{uuid}/w9.pdf" (see the w9_storage_path columns
+  // on djs/vendors) — well under 100 chars. 300 is a generous upper bound
+  // that still rejects an absurd payload before it's used in a query.
+  if (
+    typeof storagePath !== 'string' ||
+    storagePath.length === 0 ||
+    storagePath.length > 300
+  ) {
     return NextResponse.json(
       { error: 'storagePath is required' },
       { status: 400 }

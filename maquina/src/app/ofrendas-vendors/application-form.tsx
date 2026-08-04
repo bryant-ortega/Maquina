@@ -78,7 +78,7 @@ const FormSchema = z
   .object({
     business_name: z.string().trim().min(1, 'Business name is required').max(200),
     vendor_names: z.string().trim().min(1, 'Vendor name(s) are required').max(300),
-    email: z.string().trim().email('Enter a valid email'),
+    email: z.string().trim().max(254, 'Enter a valid email').email('Enter a valid email'),
     phone: z.string().trim().min(1, 'Phone is required').max(40),
     instagram_handle: z
       .string()
@@ -88,7 +88,8 @@ const FormSchema = z
     website_url: z.string().trim().max(300).optional(),
     offerings: z
       .array(z.enum(OFFERING_OPTIONS))
-      .min(1, 'Select at least one'),
+      .min(1, 'Select at least one')
+      .max(OFFERING_OPTIONS.length),
     offerings_other: z.string().trim().max(200).optional(),
     best_fit: z.enum(BEST_FIT_OPTIONS, { message: 'Please select one' }),
     best_fit_other: z.string().trim().max(200).optional(),

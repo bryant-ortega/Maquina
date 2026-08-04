@@ -1,0 +1,35 @@
+-- Migration 0037 — drop djs_update_own_w9 and vendors_update_own_w9.
+--
+-- Security audit finding: both policies use `user_id = auth.uid()` as
+-- their USING/WITH CHECK clause with no column restriction, which
+-- grants the row owner UPDATE on every column — not just the W-9
+-- fields the names imply. Postgres RLS policies gate rows, not
+-- columns, so "own_w9" was never actually scoped to W-9 fields.
+--
+-- That means, as written, any authenticated DJ or vendor could call
+-- the Supabase REST API directly (bypassing the app's UI and server
+-- actions entirely — trivial with their own session token) and
+-- rewrite their own pay_method, pay_handle, w9_status, rank, dj_name,
+-- government_name, phone, or email. Self-marking w9_status = 'on_file'
+-- without ever uploading a real document undermines the payment-
+-- eligibility gate the whole feature exists for; rewriting pay_method/
+-- pay_handle is a payment-redirection risk once an admin cuts a check
+-- against whatever's on file.
+--
+-- Confirmed via code search that no legitimate app path needs this
+-- policy: the only self-service write (src/app/dj/upload-w9/actions.ts,
+-- src/app/vendor/upload-w9/actions.ts) already goes through the
+-- service-role client for the actual djs/vendors update, which
+-- bypasses RLS regardless of what policy exists — it only ever touches
+-- w9_storage_path + w9_status, and does so after validating file type/
+-- size server-side. Both profile pages tell the DJ/vendor outright:
+-- "only admins can edit" (dj/profile, vendor/profile). Admin writes go
+-- through djs_update_admin / vendors_update_admin (has_role('admin')),
+-- which this migration does not touch.
+--
+-- djs_select_own / vendors_select_own (read-only, same user_id scope)
+-- are correct as-is and also untouched — the profile pages need those
+-- to render the DJ/vendor's own data.
+
+DROP POLICY IF EXISTS djs_update_own_w9 ON djs;
+DROP POLICY IF EXISTS vendors_update_own_w9 ON vendors;

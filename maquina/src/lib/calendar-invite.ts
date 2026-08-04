@@ -30,7 +30,7 @@
  */
 
 import { createEvents, type EventAttributes } from 'ics'
-import { sendEmail } from './email'
+import { sendEmail, escapeHtml } from './email'
 import { parseHHMM } from './run-of-show'
 
 const DEFAULT_FULL_RECIPIENTS = ['kalicorose@gmail.com', 'elvis@losgoths.co']
@@ -243,11 +243,3 @@ async function sendOneInvite(args: {
   }
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}

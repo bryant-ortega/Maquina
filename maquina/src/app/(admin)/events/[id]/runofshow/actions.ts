@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { sendEmail, isEmailConfigured } from '@/lib/email'
+import { sendEmail, isEmailConfigured, escapeHtml } from '@/lib/email'
 import { renderRunOfShowPdf } from '@/lib/pdf-runofshow'
 
 /**
@@ -34,12 +34,16 @@ import { renderRunOfShowPdf } from '@/lib/pdf-runofshow'
 // an empty/blank field becomes `undefined` (normal send, not a test).
 const TestToInput = z.preprocess((v) => {
   if (typeof v !== 'string') return v
-  const list = v
+  // Cap the raw field before splitting — 2000 chars is generous room for
+  // 10 real addresses with delimiters, and stops a pasted wall of text
+  // from being split/mapped over for no reason.
+  const bounded = v.slice(0, 2000)
+  const list = bounded
     .split(/[,;\s]+/)
     .map((s) => s.trim())
     .filter(Boolean)
   return list.length > 0 ? list : undefined
-}, z.array(z.string().trim().toLowerCase().email('Invalid email address')).max(10).optional())
+}, z.array(z.string().trim().toLowerCase().max(254).email('Invalid email address')).max(10).optional())
 
 const Input = z.object({
   event_id: z.string().uuid(),
@@ -244,11 +248,3 @@ export async function sendRunOfShowEmail(
   }
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}

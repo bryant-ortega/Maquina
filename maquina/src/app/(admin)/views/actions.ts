@@ -55,7 +55,7 @@ const CreateViewInput = z.object({
 })
 
 const FieldRowInput = z.object({
-  field_key: z.string().min(1),
+  field_key: z.string().min(1).max(100),
   label: z.string().min(1).max(80).trim(),
   position: z.number().int().min(0),
   visible: z.boolean(),

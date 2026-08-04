@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { looksLikePdf } from '@/lib/file-validation'
 
 /**
  * Server action that uploads a DJ's W-9 PDF.
@@ -61,12 +62,15 @@ export async function uploadW9(formData: FormData): Promise<UploadW9Result> {
   const file = formData.get('w9') as File | null
   if (!file || file.size === 0) return { ok: false, reason: 'no_file' }
 
-  // Browser-reported MIME types are unreliable, but for PDFs they're stable
-  // enough to reject blatant mismatches at the edge. We also enforce on
-  // extension as a belt-and-braces check.
+  // Browser-reported MIME type + filename extension are attacker-
+  // controlled metadata on a hand-built request — not proof of
+  // content. looksLikePdf() checks the actual bytes (see
+  // lib/file-validation.ts) as the real gate; the other two stay as a
+  // cheap first reject for the common "wrong file" mistake.
   const isPdfMime = file.type === 'application/pdf'
   const isPdfName = file.name.toLowerCase().endsWith('.pdf')
   if (!isPdfMime || !isPdfName) return { ok: false, reason: 'wrong_type' }
+  if (!(await looksLikePdf(file))) return { ok: false, reason: 'wrong_type' }
 
   if (file.size > MAX_W9_BYTES) return { ok: false, reason: 'too_large' }
 

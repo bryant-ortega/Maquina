@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { looksLikePdf } from '@/lib/file-validation'
 
 /**
  * Server action that uploads a vendor's W-9 PDF.
@@ -55,6 +56,7 @@ export async function uploadVendorW9(
   const isPdfMime = file.type === 'application/pdf'
   const isPdfName = file.name.toLowerCase().endsWith('.pdf')
   if (!isPdfMime || !isPdfName) return { ok: false, reason: 'wrong_type' }
+  if (!(await looksLikePdf(file))) return { ok: false, reason: 'wrong_type' }
 
   if (file.size > MAX_W9_BYTES) return { ok: false, reason: 'too_large' }
 

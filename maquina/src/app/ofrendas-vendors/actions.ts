@@ -1,8 +1,15 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { sendOfrendasVendorApplicationReceipt } from '@/lib/email'
+import {
+  checkRateLimit,
+  formatRetryAfter,
+  getClientIp,
+  RATE_LIMITS,
+} from '@/lib/rate-limit'
 
 /**
  * Server action for /ofrendas-vendors — the standalone Ofrendas vendor
@@ -69,7 +76,7 @@ const ApplicationInput = z
   .object({
     business_name: z.string().trim().min(1, 'Business name is required').max(200),
     vendor_names: z.string().trim().min(1, 'Vendor name(s) are required').max(300),
-    email: z.string().trim().toLowerCase().email('Enter a valid email'),
+    email: z.string().trim().toLowerCase().max(254, 'Enter a valid email').email('Enter a valid email'),
     phone: z.string().trim().min(1, 'Phone is required').max(40),
     instagram_handle: z
       .string()
@@ -79,7 +86,11 @@ const ApplicationInput = z
     website_url: z.string().trim().max(300).optional(),
     offerings: z
       .array(z.enum(OFFERING_OPTIONS))
-      .min(1, 'Select at least one'),
+      .min(1, 'Select at least one')
+      // OFFERING_OPTIONS has 9 entries — a legit submission can't select
+      // more than that. Bounds a checkbox-group array against someone
+      // replaying the same value thousands of times in a raw POST.
+      .max(OFFERING_OPTIONS.length),
     offerings_other: z.string().trim().max(200).optional(),
     best_fit: z.enum(BEST_FIT_OPTIONS, { message: 'Please select one' }),
     best_fit_other: z.string().trim().max(200).optional(),
@@ -144,6 +155,21 @@ export async function submitOfrendasVendorApplication(
   // writing anything.
   if (formData.get('company_url')) {
     return { ok: true }
+  }
+
+  // Public, unauthenticated form — rate limited to 5 submissions /
+  // 15 min per IP as a spam backstop alongside the honeypot above.
+  const ip = getClientIp(await headers())
+  const limit = await checkRateLimit(
+    `ofrendas-apply:ip:${ip}`,
+    RATE_LIMITS.PUBLIC_FORM
+  )
+  if (!limit.allowed) {
+    return {
+      ok: false,
+      reason: 'error',
+      message: `Too many submissions from this connection. Try again in ${formatRetryAfter(limit.retryAfterSeconds)}.`,
+    }
   }
 
   const optionalStr = (key: string) => {

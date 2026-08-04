@@ -131,7 +131,13 @@ const UpdateEventInput = z.object({
   venue_tix_fee: optionalNumber,
   advance_contact_email: z.preprocess(
     (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    z.string().trim().toLowerCase().email('Invalid contact email').optional()
+    z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(254, 'Invalid contact email')
+      .email('Invalid contact email')
+      .optional()
   ),
   advance_contact_phone: optionalString(40),
 
@@ -682,7 +688,7 @@ export async function updateEvent(
 
 const AddCollabInput = z.object({
   event_id: z.string().uuid(),
-  email: z.string().trim().toLowerCase().email('Invalid email'),
+  email: z.string().trim().toLowerCase().max(254, 'Invalid email').email('Invalid email'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

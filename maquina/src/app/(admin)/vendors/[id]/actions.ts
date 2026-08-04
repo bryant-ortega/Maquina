@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { looksLikePdf } from '@/lib/file-validation'
 
 /**
  * Admin updates a vendor row by id.
@@ -29,7 +30,7 @@ const UpdateVendorInput = z.object({
   id: z.string().regex(UUID_LIKE, 'Invalid id'),
   company_name: z.string().trim().min(1, 'Company name is required').max(200),
   contact_name: z.string().trim().min(1, 'Contact name is required').max(200),
-  email: z.string().trim().toLowerCase().email('Invalid email'),
+  email: z.string().trim().toLowerCase().max(254, 'Invalid email').email('Invalid email'),
   phone: z.preprocess(
     (v) => (v === '' ? undefined : v),
     z.string().trim().max(40).optional()
@@ -187,6 +188,7 @@ export async function uploadVendorW9(
   const isPdfMime = file.type === 'application/pdf'
   const isPdfName = file.name.toLowerCase().endsWith('.pdf')
   if (!isPdfMime || !isPdfName) return { ok: false, reason: 'wrong_type' }
+  if (!(await looksLikePdf(file))) return { ok: false, reason: 'wrong_type' }
 
   if (file.size > MAX_W9_BYTES) return { ok: false, reason: 'too_large' }
 

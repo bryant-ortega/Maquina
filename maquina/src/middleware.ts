@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { checkRateLimit, getClientIp, RATE_LIMITS } from '@/lib/rate-limit'
 
 /**
  * Refreshes the Supabase session on every request and gates protected routes.
@@ -9,8 +10,33 @@ import { NextResponse, type NextRequest } from 'next/server'
  * and /vendor are the exception — they're public self-registration
  * flows with links emailed automatically, so they redirect to /login
  * at the page level instead (see the /dj and /vendor comments below).
+ *
+ * Also applies a general rate-limit backstop (60 req/min per IP) to
+ * every /api/* route — see src/lib/rate-limit.ts. Login/register/
+ * password-reset get their own stricter 5-per-15-min limit inside
+ * their own server actions instead (those aren't distinct API routes
+ * — they're POSTs to the page URL — so gating them here would mean
+ * parsing the request body just to tell them apart from other actions
+ * on the same page). Scoped to path.startsWith('/api/') specifically
+ * so ordinary page navigation never pays for the extra DB round trip.
  */
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+
+  if (path.startsWith('/api/')) {
+    const ip = getClientIp(request.headers)
+    const limit = await checkRateLimit(`api:${ip}`, RATE_LIMITS.API)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(limit.retryAfterSeconds) },
+        }
+      )
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -40,8 +66,8 @@ export async function middleware(request: NextRequest) {
 
   // (admin) is a route group — its URL prefix is empty, so we can't match it
   // by pathname. The admin pages live under top-level paths like /events,
-  // /djs, /settings. Gate those explicitly.
-  const path = request.nextUrl.pathname
+  // /djs, /settings. Gate those explicitly. (`path` itself is declared up
+  // top now, for the /api/* rate-limit check.)
   const isAdminRoute =
     path.startsWith('/events') ||
     path.startsWith('/djs') ||

@@ -17,7 +17,7 @@ const REGIONS = ['SoCal', 'NorCal', 'Chicago', 'Arizona', 'Seattle', 'Other', 'N
 const FormSchema = z.object({
   dj_name: z.string().trim().min(1, 'DJ name is required').max(100),
   government_name: z.string().trim().min(1, 'Legal name is required').max(200),
-  email: z.string().trim().email('Invalid email'),
+  email: z.string().trim().max(254, 'Invalid email').email('Invalid email'),
   phone: z.string().trim().max(40).optional(),
   region: z.enum(REGIONS),
   pay_method: z.enum(['', 'zelle', 'venmo', 'paypal']).optional(),

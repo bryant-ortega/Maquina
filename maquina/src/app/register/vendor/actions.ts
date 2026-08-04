@@ -1,10 +1,17 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { sendVendorRegistrationConfirmation } from '@/lib/email'
 import { z } from 'zod'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import {
+  checkRateLimit,
+  formatRetryAfter,
+  getClientIp,
+  RATE_LIMITS,
+} from '@/lib/rate-limit'
 
 /**
  * Server action for /register/vendor.
@@ -18,12 +25,14 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
  *
  * Reusing the same orphan-account / wrong-role / wrong-password
  * recovery branches keeps the UX consistent across DJs and vendors.
+ *
+ * Same 5 attempts / 15 min IP rate limit as registerDj.
  */
 
 const RegisterVendorInput = z.object({
   company_name: z.string().trim().min(1, 'Company name is required').max(200),
   contact_name: z.string().trim().min(1, 'Contact name is required').max(200),
-  email: z.string().trim().toLowerCase().email('Invalid email'),
+  email: z.string().trim().toLowerCase().max(254, 'Invalid email').email('Invalid email'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -44,11 +53,25 @@ export type RegisterVendorResult =
   | { ok: false; reason: 'create_failed'; message: string }
   | { ok: false; reason: 'orphan_wrong_password' }
   | { ok: false; reason: 'orphan_wrong_role' }
+  | { ok: false; reason: 'rate_limited'; message: string }
 // Success path redirects, so the form never sees `ok: true`.
 
 export async function registerVendor(
   formData: FormData
 ): Promise<RegisterVendorResult | never> {
+  // Same `register:ip:*` bucket as registerDj — intentional. Otherwise
+  // an attacker could get 5 DJ signups + 5 vendor signups from one IP
+  // per window instead of 5 total.
+  const ip = getClientIp(await headers())
+  const ipLimit = await checkRateLimit(`register:ip:${ip}`, RATE_LIMITS.AUTH)
+  if (!ipLimit.allowed) {
+    return {
+      ok: false,
+      reason: 'rate_limited',
+      message: `Too many registration attempts. Try again in ${formatRetryAfter(ipLimit.retryAfterSeconds)}.`,
+    }
+  }
+
   const raw = {
     company_name: formData.get('company_name'),
     contact_name: formData.get('contact_name'),
@@ -122,10 +145,13 @@ export async function registerVendor(
   })
   if (vendorErr) {
     await admin.auth.admin.deleteUser(created.user.id)
+    // Public, unauthenticated endpoint — log the real error server-side
+    // rather than handing a stranger raw DB error text.
+    console.error('[register/vendor] vendors insert failed:', vendorErr.message)
     return {
       ok: false,
       reason: 'create_failed',
-      message: vendorErr.message,
+      message: 'Something went wrong creating your account. Please try again in a moment.',
     }
   }
 
@@ -203,7 +229,12 @@ async function reclaimOrphanAccount(
     region: input.region,
   })
   if (vendorErr) {
-    return { ok: false, reason: 'create_failed', message: vendorErr.message }
+    console.error('[register/vendor] vendors insert failed (orphan reclaim):', vendorErr.message)
+    return {
+      ok: false,
+      reason: 'create_failed',
+      message: 'Something went wrong creating your account. Please try again in a moment.',
+    }
   }
 
   try {

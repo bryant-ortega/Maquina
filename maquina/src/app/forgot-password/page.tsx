@@ -2,19 +2,24 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { requestPasswordReset } from './actions'
 
 /**
  * Forgot-password.
  *
- * Calls Supabase's `resetPasswordForEmail`, which sends a recovery email
- * containing a link to /auth/callback?code=...&type=recovery. The
- * callback exchanges the code for a recovery session and redirects the
- * user to /reset-password to set a new password.
+ * Submits to a server action (requestPasswordReset in ./actions.ts)
+ * rather than calling Supabase's `resetPasswordForEmail` directly from
+ * the browser — rate limiting (5 attempts / 15 min) has to happen
+ * server-side. The action sends a recovery email containing a link to
+ * /auth/callback?code=...&type=recovery. The callback exchanges the
+ * code for a recovery session and redirects the user to
+ * /reset-password to set a new password.
  *
  * We always show a "check your email" success state, even when the
  * email isn't on file — leaks of "this email is registered" are a
- * standard footgun on auth surfaces.
+ * standard footgun on auth surfaces. The one exception is being rate
+ * limited, which gets its own message (that's not an email-existence
+ * leak — it just means this IP/email is being hammered).
  */
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -29,16 +34,16 @@ export default function ForgotPasswordPage() {
     setStatus('sending')
     setErrorMessage(null)
 
-    const supabase = createClient()
-    // Send the user straight to /reset-password — Supabase's JS client
-    // auto-detects the recovery token (whether it lands as ?code=... or
-    // a #access_token=... fragment) when the page mounts.
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (error) {
+    const fd = new FormData()
+    fd.set('email', email)
+    const result = await requestPasswordReset(fd)
+    if (!result.ok) {
       setStatus('error')
-      setErrorMessage(error.message)
+      setErrorMessage(
+        result.reason === 'rate_limited'
+          ? result.message
+          : 'Enter a valid email address.'
+      )
       return
     }
     setStatus('sent')
