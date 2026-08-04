@@ -112,6 +112,9 @@ export async function loginUser(formData: FormData): Promise<LoginResult | never
   if (roles.includes('finance')) {
     redirect('/finance/events')
   }
+  if (roles.includes('ofrendas_partner')) {
+    redirect('/ofrendas-vendor-applications')
+  }
   if (roles.includes('collab')) {
     redirect('/collab/events')
   }

@@ -16,6 +16,10 @@ const ROLE_ROUTES: Record<string, { label: string; href: string }> = {
   viewer: { label: 'Year View', href: '/viewer/year' },
   contract: { label: 'Contractor', href: '/contract/view' },
   finance: { label: 'Finance', href: '/finance/events' },
+  ofrendas_partner: {
+    label: 'Ofrendas',
+    href: '/ofrendas-vendor-applications',
+  },
   collab: { label: 'Collab', href: '/collab/events' },
   vendor: { label: 'Vendor Profile', href: '/vendor/profile' },
   dj: { label: 'DJ Profile', href: '/dj/profile' },

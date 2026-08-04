@@ -1,27 +1,31 @@
 import { redirect } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { RoleNav } from '@/components/role-nav'
 
 /**
- * Viewer shell — Phase 17g.
+ * Ofrendas Partner shell — moved out of (admin) so it can be granted to
+ * the 2 outside partners working the Ofrendas vendor-call queue without
+ * giving them full admin (migration 0038).
  *
- * Wraps every /viewer/* route with minimal chrome: a Maquina brand row
- * at the top and a sign-out button. No sidebar, no admin links, no
- * "Events" / "DJs" / "Settings". Viewers see the year view and
- * nothing else.
+ * Wraps every /ofrendas-vendor-applications/* route with minimal
+ * chrome: a Maquina brand row + sign-out button. No sidebar, no admin
+ * links — an Ofrendas Partner sees the applications list + detail
+ * pages and nothing else. URL is unchanged from when this route lived
+ * under (admin) (route groups don't affect the path), so any existing
+ * links/bookmarks still work.
  *
  * Auth gates:
  *   1. Must be signed in.
- *   2. profiles.role must be 'viewer' or 'admin'.
- *      - Admins can preview /viewer/* without losing their session.
- *      - DJs / collabs / partners get routed to their own surfaces.
+ *   2. profiles.roles must include 'ofrendas_partner' or 'admin'.
+ *      - Admins can still reach this page from their own sidebar link
+ *        without losing their session.
+ *      - Everyone else gets routed to their own surface.
  *
- * Hard guarantee: even if the UI gates fail, RLS keeps viewers from
- * touching anything outside what `events_select_viewer` (migration
- * 0016) and the pre-existing `venues_select_authenticated` policies
- * allow.
+ * Hard guarantee: even if this gate is somehow bypassed, migration
+ * 0038's RLS policies keep an ofrendas_partner session from reading or
+ * writing anything outside ofrendas_vendor_applications — no other
+ * table has a policy for this role at all.
  */
-export default async function ViewerLayout({
+export default async function OfrendasVendorApplicationsLayout({
   children,
 }: {
   children: React.ReactNode
@@ -42,19 +46,16 @@ export default async function ViewerLayout({
     .maybeSingle()
 
   const roles: string[] = profile?.roles ?? []
-  const hasViewerRole = roles.includes('viewer')
-  if (!hasViewerRole && !roles.includes('admin')) {
-    // DJ / collab / contract / unknown — punt to /dj/profile, the
-    // existing catch-all for non-admin non-collab non-viewer sessions.
-    if (roles.includes('collab')) redirect('/collab/events')
+  if (!roles.includes('ofrendas_partner') && !roles.includes('admin')) {
+    if (roles.includes('viewer')) redirect('/viewer/year')
     if (roles.includes('contract')) redirect('/contract/view')
     if (roles.includes('finance')) redirect('/finance/events')
-    if (roles.includes('ofrendas_partner'))
-      redirect('/ofrendas-vendor-applications')
+    if (roles.includes('collab')) redirect('/collab/events')
+    if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')
   }
 
-  const displayName = profile?.display_name ?? user.email ?? 'Viewer'
+  const displayName = profile?.display_name ?? user.email ?? 'Partner'
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -63,11 +64,10 @@ export default async function ViewerLayout({
           <div>
             <p className="text-sm font-semibold tracking-tight">MΛQUIИΛ</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              LosGothsCo · Viewer
+              LosGothsCo · Ofrendas
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <RoleNav roles={roles} primaryRole={roles[0]} currentPath="/viewer/year" />
             <span className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:inline">
               {displayName}
             </span>

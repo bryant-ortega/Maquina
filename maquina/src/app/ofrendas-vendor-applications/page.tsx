@@ -26,8 +26,8 @@ import { ApprovedCheckbox, PaidCheckbox } from './status-toggles'
  * Sorted newest-first (created_at desc) since this is a submission
  * queue, not an alphabetical roster.
  *
- * Auth: the (admin) layout already enforces role===admin, so this page
- * doesn't repeat that check.
+ * Auth: this route's own layout.tsx already enforces role 'admin' or
+ * 'ofrendas_partner', so this page doesn't repeat that check.
  */
 
 const BEST_FIT_OPTIONS = [

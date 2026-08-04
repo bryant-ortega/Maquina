@@ -45,6 +45,8 @@ export default async function FinanceLayout({
   if (!roles.includes('finance') && !roles.includes('admin')) {
     if (roles.includes('viewer')) redirect('/viewer/year')
     if (roles.includes('contract')) redirect('/contract/view')
+    if (roles.includes('ofrendas_partner'))
+      redirect('/ofrendas-vendor-applications')
     if (roles.includes('collab')) redirect('/collab/events')
     if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')

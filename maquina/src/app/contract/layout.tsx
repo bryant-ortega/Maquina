@@ -47,6 +47,8 @@ export default async function ContractLayout({
   if (!roles.includes('contract') && !roles.includes('admin')) {
     if (roles.includes('viewer')) redirect('/viewer/year')
     if (roles.includes('finance')) redirect('/finance/events')
+    if (roles.includes('ofrendas_partner'))
+      redirect('/ofrendas-vendor-applications')
     if (roles.includes('collab')) redirect('/collab/events')
     if (roles.includes('vendor')) redirect('/vendor/profile')
     redirect('/dj/profile')

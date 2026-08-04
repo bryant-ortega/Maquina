@@ -837,6 +837,28 @@ maquina/
   flagged inline in JSDoc on each action.
 - **W-9 storage path is always `{dj_user_id}/w9.pdf`** in the `w9s`
   bucket. Both the DJ self-upload and the new admin upload agree on this.
+- **Vendor (and DJ) self-registration never requires a W-9 upfront —
+  confirmed by reading the code 2026-08-04.** `registerVendor`
+  (`src/app/register/vendor/actions.ts`) and its orphan-reclaim branch
+  both `redirect('/vendor/upload-w9')` on success, but that's a
+  courtesy next-step, not a gate: the `RegisterVendorInput` zod schema
+  has no W-9 field, the `vendors` insert never touches
+  `w9_status`/`w9_storage_path` (they default to `pending`/`null`), and
+  `/vendor/upload-w9/page.tsx` has a plain "Back to profile" link with
+  no server-side check anywhere forcing the upload before the account
+  is usable. `src/middleware.ts` doesn't block `/vendor/profile` on
+  W-9 status either (see "What's done" #4 — `/vendor/*` was
+  deliberately dropped from the 404-on-unauth block, and it never had a
+  W-9-status gate to begin with). Net effect: a vendor can create an
+  account, skip the upload screen, and come back to
+  `/vendor/upload-w9` (or get bounced there by the weekly reminder
+  email once `RESEND_API_KEY`/cron are live) whenever they're ready —
+  `w9_reminders`/the Monday cron (see #16) is exactly the mechanism
+  that nags pending vendors until they do. `register/dj/actions.ts` →
+  `/dj/upload-w9` follows the identical shape. **Does not apply to the
+  separate Ofrendas vendor lead-capture form** (`/ofrendas-vendors`,
+  migrations 0032/0033) — that's an isolated table with its own
+  one-off flow, no `vendors`/`w9s` involvement at all.
 - **DJ delete leaves an orphan auth user.** Now handled by the
   reclaim flow above; if it ever needs a true cleanup, the user does it
   manually in Supabase Studio → Authentication → Users (permanent

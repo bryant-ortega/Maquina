@@ -105,7 +105,7 @@ function messageFor(result: Exclude<ToggleResult, { ok: true }>): string {
     case 'unauth':
       return 'Session expired — sign in again.'
     case 'forbidden':
-      return 'Admins only.'
+      return 'Not authorized.'
     case 'invalid_id':
       return 'Invalid id.'
     case 'db_failed':

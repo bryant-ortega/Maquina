@@ -78,7 +78,7 @@ function messageFor(
     case 'unauth':
       return 'Session expired — sign in again.'
     case 'forbidden':
-      return 'Admins only.'
+      return 'Not authorized.'
     case 'db_failed':
       return `Couldn't load recipients: ${result.message}`
   }

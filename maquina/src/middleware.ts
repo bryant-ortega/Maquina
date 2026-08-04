@@ -110,6 +110,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/not-found', request.url))
   }
 
+  // /ofrendas-vendor-applications/* requires a session. Role
+  // enforcement (must be 'ofrendas_partner' or 'admin') happens in that
+  // route's own layout — middleware only ensures someone is signed in.
+  // Invite-only role (migration 0038), same invisible-to-scanners
+  // treatment as /contract, /viewer, /collab above — this page shows
+  // applicant contact info (email, phone), so it doesn't get the
+  // /dj-style "public link, redirect at the page level" treatment.
+  if (path.startsWith('/ofrendas-vendor-applications') && !user) {
+    return NextResponse.rewrite(new URL('/not-found', request.url))
+  }
+
   // /vendor/* — same reasoning as /dj/* above: no 404-on-unauth here.
   // Page-level redirect('/login') (vendor/profile, vendor/upload-w9)
   // is what actually gates it, and the registration-confirmation +

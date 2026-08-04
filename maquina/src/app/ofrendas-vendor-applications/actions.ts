@@ -9,21 +9,22 @@ import {
 } from '@/lib/email'
 
 /**
- * Admin actions for the Ofrendas vendor applications view:
+ * Actions for the Ofrendas vendor applications view — usable by admins
+ * and the 'ofrendas_partner' role (migration 0038):
  *   - setApplicationApproved / setApplicationPaid — the per-row
  *     checkbox toggles in status-toggles.tsx.
  *   - sendApprovedVendorEmails / sendPaidVendorEmails — the two bulk
  *     "send a form email" buttons in bulk-email-button.tsx.
  *
  * Same authorization + client pattern as djs/[id]/actions.ts:
- *   1. Re-check the caller is signed in and has role===admin using the
- *      cookie-bound client (the (admin) layout already gates the page,
- *      this is defense in depth for the action itself).
+ *   1. Re-check the caller is signed in and has role 'admin' or
+ *      'ofrendas_partner' using the cookie-bound client (the layout in
+ *      this route already gates the page, this is defense in depth for
+ *      the action itself).
  *   2. Do the actual read/write with a service-role client, because
- *      ofrendas_vendor_applications has RLS enabled with zero policies
- *      for anon/authenticated (see migrations 0032/0033) — even a
- *      signed-in admin can't touch this table through the normal
- *      cookie-bound client.
+ *      ofrendas_vendor_applications' only anon/authenticated RLS
+ *      policies are the ofrendas_partner-scoped ones added in 0038 —
+ *      admins still read/write it via service-role, same as before.
  */
 
 const UUID_LIKE =
@@ -51,7 +52,8 @@ async function requireAdmin(): Promise<
     .select('roles')
     .eq('user_id', user.id)
     .maybeSingle()
-  if (!profile?.roles?.includes('admin')) {
+  const roles: string[] = profile?.roles ?? []
+  if (!roles.includes('admin') && !roles.includes('ofrendas_partner')) {
     return { ok: false, reason: 'forbidden' }
   }
   return { ok: true }

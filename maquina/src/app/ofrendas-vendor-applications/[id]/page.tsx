@@ -18,7 +18,8 @@ import { ApprovedCheckbox, PaidCheckbox } from '../status-toggles'
  * Same service-role read as the list page — RLS on this table has no
  * anon/authenticated policies.
  *
- * Auth: the (admin) layout already enforces role===admin.
+ * Auth: this route's own layout.tsx already enforces role 'admin' or
+ * 'ofrendas_partner'.
  */
 
 const UUID_LIKE =
