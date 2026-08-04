@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
+import { BulkEmailButton } from './bulk-email-button'
+import { ApprovedCheckbox, PaidCheckbox } from './status-toggles'
 
 /**
  * Admin view of Ofrendas vendor-call submissions.
@@ -57,6 +59,27 @@ function isBestFit(value: string | undefined | null): value is BestFit {
   return !!value && (BEST_FIT_OPTIONS as readonly string[]).includes(value)
 }
 
+const STATUS_VALUES = ['approved', 'paid'] as const
+type Status = (typeof STATUS_VALUES)[number]
+
+function isStatus(value: string | undefined | null): value is Status {
+  return !!value && (STATUS_VALUES as readonly string[]).includes(value)
+}
+
+/** Builds a page-relative href carrying whichever filters are active. */
+function filterHref(params: {
+  category?: string | null
+  status?: string | null
+}): string {
+  const sp = new URLSearchParams()
+  if (params.category) sp.set('category', params.category)
+  if (params.status) sp.set('status', params.status)
+  const qs = sp.toString()
+  return qs
+    ? `/ofrendas-vendor-applications?${qs}`
+    : '/ofrendas-vendor-applications'
+}
+
 type ApplicationRow = {
   id: string
   business_name: string
@@ -68,17 +91,24 @@ type ApplicationRow = {
   offerings: string[]
   space_needed: string
   food_permit_status: string
+  approved: boolean
+  approved_email_sent_at: string | null
+  paid: boolean
+  paid_email_sent_at: string | null
   created_at: string
 }
 
 export default async function OfrendasVendorApplicationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>
+  searchParams: Promise<{ category?: string; status?: string }>
 }) {
   const params = await searchParams
   const activeCategory: BestFit | null = isBestFit(params.category)
     ? params.category
+    : null
+  const activeStatus: Status | null = isStatus(params.status)
+    ? params.status
     : null
 
   const admin = createClient(
@@ -90,7 +120,7 @@ export default async function OfrendasVendorApplicationsPage({
   const { data: applications, error } = await admin
     .from('ofrendas_vendor_applications')
     .select(
-      'id, business_name, vendor_names, email, phone, best_fit, best_fit_other, offerings, space_needed, food_permit_status, created_at'
+      'id, business_name, vendor_names, email, phone, best_fit, best_fit_other, offerings, space_needed, food_permit_status, approved, approved_email_sent_at, paid, paid_email_sent_at, created_at'
     )
     .order('created_at', { ascending: false })
 
@@ -110,11 +140,24 @@ export default async function OfrendasVendorApplicationsPage({
   }
 
   const rows = (applications ?? []) as ApplicationRow[]
-  const visible = activeCategory
-    ? rows.filter((r) => r.best_fit === activeCategory)
-    : rows
+  const visible = rows
+    .filter((r) => !activeCategory || r.best_fit === activeCategory)
+    .filter((r) => {
+      if (activeStatus === 'approved') return r.approved
+      if (activeStatus === 'paid') return r.paid
+      return true
+    })
   const permitFollowupCount = rows.filter(
     (r) => r.food_permit_status === NEEDS_PERMIT_FOLLOWUP
+  ).length
+
+  const approvedCount = rows.filter((r) => r.approved).length
+  const paidCount = rows.filter((r) => r.paid).length
+  const approvedPendingEmail = rows.filter(
+    (r) => r.approved && !r.approved_email_sent_at
+  ).length
+  const paidPendingEmail = rows.filter(
+    (r) => r.paid && !r.paid_email_sent_at
   ).length
 
   // Category counts come from the unfiltered set so chip labels are stable.
@@ -137,7 +180,7 @@ export default async function OfrendasVendorApplicationsPage({
   return (
     <div className="flex-1 px-4 py-6 sm:px-8 sm:py-10">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex items-end justify-between gap-4">
+        <header className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">
               Ofrendas Vendor Applications
@@ -145,14 +188,19 @@ export default async function OfrendasVendorApplicationsPage({
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               {rows.length}{' '}
               {rows.length === 1 ? 'application' : 'applications'} submitted
-              {activeCategory && (
+              {(activeCategory || activeStatus) && (
                 <>
                   {' · '}
-                  showing {visible.length} in{' '}
-                  {BEST_FIT_LABELS[activeCategory]}
+                  showing {visible.length}
+                  {activeStatus && ` ${activeStatus}`}
+                  {activeCategory && ` in ${BEST_FIT_LABELS[activeCategory]}`}
                 </>
               )}
             </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <BulkEmailButton kind="approved" pendingCount={approvedPendingEmail} />
+            <BulkEmailButton kind="paid" pendingCount={paidPendingEmail} />
           </div>
         </header>
 
@@ -169,9 +217,31 @@ export default async function OfrendasVendorApplicationsPage({
         )}
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-zinc-500 dark:text-zinc-400">Status:</span>
+          <FilterChip
+            href={filterHref({ category: activeCategory, status: null })}
+            active={!activeStatus}
+          >
+            All ({rows.length})
+          </FilterChip>
+          <FilterChip
+            href={filterHref({ category: activeCategory, status: 'approved' })}
+            active={activeStatus === 'approved'}
+          >
+            Approved ({approvedCount})
+          </FilterChip>
+          <FilterChip
+            href={filterHref({ category: activeCategory, status: 'paid' })}
+            active={activeStatus === 'paid'}
+          >
+            Paid ({paidCount})
+          </FilterChip>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-zinc-500 dark:text-zinc-400">Category:</span>
           <FilterChip
-            href="/ofrendas-vendor-applications"
+            href={filterHref({ category: null, status: activeStatus })}
             active={!activeCategory}
           >
             All ({rows.length})
@@ -179,9 +249,7 @@ export default async function OfrendasVendorApplicationsPage({
           {BEST_FIT_OPTIONS.map((c) => (
             <FilterChip
               key={c}
-              href={`/ofrendas-vendor-applications?category=${encodeURIComponent(
-                c
-              )}`}
+              href={filterHref({ category: c, status: activeStatus })}
               active={activeCategory === c}
             >
               {BEST_FIT_LABELS[c]} ({categoryCounts[c]})
@@ -198,6 +266,8 @@ export default async function OfrendasVendorApplicationsPage({
                 <th className="px-4 py-2.5 font-medium">Category</th>
                 <th className="px-4 py-2.5 font-medium">Space</th>
                 <th className="px-4 py-2.5 font-medium">Submitted</th>
+                <th className="px-4 py-2.5 font-medium">Approved</th>
+                <th className="px-4 py-2.5 font-medium">Paid</th>
                 <th className="px-4 py-2.5 font-medium" />
               </tr>
             </thead>
@@ -205,11 +275,11 @@ export default async function OfrendasVendorApplicationsPage({
               {visible.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="px-4 py-10 text-center text-zinc-500 dark:text-zinc-400"
                   >
-                    {activeCategory
-                      ? `No applications in ${BEST_FIT_LABELS[activeCategory]} yet.`
+                    {activeStatus || activeCategory
+                      ? 'No applications match this filter yet.'
                       : 'No applications submitted yet.'}
                   </td>
                 </tr>
@@ -255,6 +325,15 @@ export default async function OfrendasVendorApplicationsPage({
                         month: 'short',
                         day: 'numeric',
                       })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <ApprovedCheckbox
+                        id={app.id}
+                        initialApproved={app.approved}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <PaidCheckbox id={app.id} initialPaid={app.paid} />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link

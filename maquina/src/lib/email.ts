@@ -250,3 +250,64 @@ export async function sendOfrendasVendorApplicationReceipt(args: {
     text: `Hi ${args.contactName}, thanks for applying to be a vendor at Ofrendas. We've got your application for ${args.businessName} on file. We review applications on a rolling basis and will follow up by email if it's a fit. Follow along at @ofrendasmarket (${igUrl}) for updates, and reach out to ${supportEmail} with questions. Gracias, LosGothsCo. This is a do-not-reply address — for questions, email ${supportEmail} instead.`,
   })
 }
+
+/**
+ * Ofrendas vendor-call approval notice. Sent in bulk from the admin
+ * "Email approved vendors" button on
+ * src/app/(admin)/ofrendas-vendor-applications/page.tsx — one send per
+ * vendor (not a single multi-recipient email), so each is personalized
+ * and no applicant sees anyone else's address.
+ */
+export async function sendOfrendasVendorApprovalEmail(args: {
+  to: string
+  contactName: string
+  businessName: string
+}): Promise<SendResult> {
+  const supportEmail = 'ofrendasmarket@gmail.com'
+  const html = shell({
+    heading: `You're approved for Ofrendas 🖤`,
+    bodyHtml: `
+      <p style="margin:0 0 12px;">Hi ${args.contactName},</p>
+      <p style="margin:0 0 12px;">Good news — <strong>${args.businessName}</strong> is approved as a vendor for <strong>Ofrendas: A Community Market</strong> at The Regent Theater, LA, on Sunday, September 20, 2026.</p>
+      <p style="margin:0 0 12px;">Next step is securing your space: we'll follow up separately with payment instructions to lock it in. Once payment is received you're fully confirmed.</p>
+      <p style="margin:0 0 16px;">Questions in the meantime? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
+      <p style="margin:0;">Gracias,<br>LosGothsCo</p>
+    `,
+  })
+  return sendEmail({
+    to: args.to,
+    subject: "You're approved for Ofrendas 🖤",
+    html,
+    text: `Hi ${args.contactName}, good news — ${args.businessName} is approved as a vendor for Ofrendas: A Community Market at The Regent Theater, LA, on Sunday, September 20, 2026. Next step is securing your space: we'll follow up separately with payment instructions to lock it in. Once payment is received you're fully confirmed. Questions in the meantime? Reach out to ${supportEmail}. Gracias, LosGothsCo.`,
+  })
+}
+
+/**
+ * Ofrendas vendor-call payment confirmation. Sent in bulk from the
+ * admin "Email paid vendors" button, same one-send-per-vendor pattern
+ * as the approval email above.
+ */
+export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
+  to: string
+  contactName: string
+  businessName: string
+}): Promise<SendResult> {
+  const supportEmail = 'ofrendasmarket@gmail.com'
+  const html = shell({
+    heading: `You're confirmed for Ofrendas 🖤`,
+    bodyHtml: `
+      <p style="margin:0 0 12px;">Hi ${args.contactName},</p>
+      <p style="margin:0 0 12px;">We've received payment for <strong>${args.businessName}</strong>'s space at <strong>Ofrendas: A Community Market</strong> — The Regent Theater, LA, Sunday, September 20, 2026. You're all set!</p>
+      <p style="margin:0 0 12px;">We'll be in touch closer to the date with load-in time and any final logistics. In the meantime, follow along at <a href="https://instagram.com/ofrendasmarket" style="color:#18181b;">@ofrendasmarket</a>.</p>
+      <p style="margin:0 0 16px;">Questions? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
+      <p style="margin:0;">Gracias,<br>LosGothsCo</p>
+    `,
+  })
+  return sendEmail({
+    to: args.to,
+    subject: "You're confirmed for Ofrendas — payment received",
+    html,
+    text: `Hi ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. Questions? Reach out to ${supportEmail}. Gracias, LosGothsCo.`,
+  })
+}
+

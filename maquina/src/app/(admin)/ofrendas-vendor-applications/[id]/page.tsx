@@ -1,16 +1,19 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
+import { ApprovedCheckbox, PaidCheckbox } from '../status-toggles'
 
 /**
  * Admin detail view of a single Ofrendas vendor application.
  *
- * Read-only — unlike the DJs/[id] detail page, there's nothing to edit
- * here. Applications aren't a managed roster; they're leads Chase reads
- * and follows up on by email/phone. All 15 spec questions are laid out
- * in the same section grouping as the public form
+ * Mostly read-only — unlike the DJs/[id] detail page, there's no full
+ * edit form. Applications aren't a managed roster; they're leads Chase
+ * reads and follows up on by email/phone. All 15 spec questions are
+ * laid out in the same section grouping as the public form
  * (src/app/ofrendas-vendors/application-form.tsx) and the DB comments
  * in supabase/migrations/0033_ofrendas_vendor_applications_full_spec.sql.
+ * The one interactive bit is the Approved/Paid status toggles — same
+ * component as the list page, so either surface stays in sync.
  *
  * Same service-role read as the list page — RLS on this table has no
  * anon/authenticated policies.
@@ -41,6 +44,12 @@ type Application = {
   agreement_accepted: boolean
   content_use_consent: string
   booth_decor_plan: string | null
+  approved: boolean
+  approved_at: string | null
+  approved_email_sent_at: string | null
+  paid: boolean
+  paid_at: string | null
+  paid_email_sent_at: string | null
   created_at: string
 }
 
@@ -61,7 +70,7 @@ export default async function OfrendasVendorApplicationDetailPage({
   const { data: app, error } = await admin
     .from('ofrendas_vendor_applications')
     .select(
-      'id, business_name, vendor_names, email, phone, instagram_handle, website_url, offerings, offerings_other, best_fit, best_fit_other, business_description, space_needed, food_permit_status, food_permit_other, menu_description, agreement_accepted, content_use_consent, booth_decor_plan, created_at'
+      'id, business_name, vendor_names, email, phone, instagram_handle, website_url, offerings, offerings_other, best_fit, best_fit_other, business_description, space_needed, food_permit_status, food_permit_other, menu_description, agreement_accepted, content_use_consent, booth_decor_plan, approved, approved_at, approved_email_sent_at, paid, paid_at, paid_email_sent_at, created_at'
     )
     .eq('id', id)
     .maybeSingle()
@@ -100,6 +109,40 @@ export default async function OfrendasVendorApplicationDetailPage({
             })}
           </p>
         </header>
+
+        <section className="flex flex-wrap items-center gap-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+          <label className="flex items-center gap-2 text-sm text-zinc-800 dark:text-zinc-200">
+            <ApprovedCheckbox
+              id={application.id}
+              initialApproved={application.approved}
+            />
+            Approved
+            {application.approved_email_sent_at && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                — emailed{' '}
+                {new Date(
+                  application.approved_email_sent_at
+                ).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
+            )}
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-800 dark:text-zinc-200">
+            <PaidCheckbox id={application.id} initialPaid={application.paid} />
+            Paid
+            {application.paid_email_sent_at && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                — emailed{' '}
+                {new Date(application.paid_email_sent_at).toLocaleDateString(
+                  undefined,
+                  { month: 'short', day: 'numeric' }
+                )}
+              </span>
+            )}
+          </label>
+        </section>
 
         <Section title="Vendor & business info">
           <Field label="Business name" value={application.business_name} />
