@@ -77,6 +77,9 @@ export default async function AdminLayout({
         <NavLink href="/views/dj-analytics">DJ analytics</NavLink>
         <NavLink href="/djs">DJs</NavLink>
         <NavLink href="/vendors">Vendors</NavLink>
+        <NavLink href="/ofrendas-vendor-applications">
+          Ofrendas Vendors
+        </NavLink>
         <NavLink href="/settings">Settings</NavLink>
       </nav>
 
