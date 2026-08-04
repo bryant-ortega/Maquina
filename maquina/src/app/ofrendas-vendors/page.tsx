@@ -69,7 +69,7 @@ export default function OfrendasVendorApplicationPage() {
             />
           </div>
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">
-            Ofrendas: A Market Event
+            Ofrendas: A Community Market
           </h1>
           <p className="text-base text-zinc-500">
             The Regent Theater, LA &middot; Sunday, September 20, 2026
