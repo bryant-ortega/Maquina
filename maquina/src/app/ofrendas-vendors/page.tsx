@@ -1,6 +1,14 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { ApplicationForm } from './application-form'
+import { isOfrendasApplicationClosed } from './deadline'
+
+// Forces this page to render fresh on every request instead of being
+// statically cached at build time. Needed so the closed/open state
+// below actually flips automatically at the deadline — without this,
+// Next would bake in whichever state was true the last time this page
+// was built and it wouldn't change until the next deploy.
+export const dynamic = 'force-dynamic'
 
 /**
  * Public, unlinked vendor-call form for Ofrendas: A Market Event.
@@ -42,6 +50,8 @@ function InfoSection({
 }
 
 export default function OfrendasVendorApplicationPage() {
+  const applicationsClosed = isOfrendasApplicationClosed()
+
   return (
     <div className="flex flex-1 items-center justify-center px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-2xl space-y-6 rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-sm sm:space-y-8 sm:p-10">
@@ -74,6 +84,11 @@ export default function OfrendasVendorApplicationPage() {
           <p className="text-base text-zinc-500">
             The Regent Theater, LA &middot; Sunday, September 20, 2026
           </p>
+          {applicationsClosed && (
+            <p className="inline-block rounded-full border border-zinc-700 bg-zinc-900 px-4 py-1 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              Vendor applications closed
+            </p>
+          )}
         </div>
 
         <div className="space-y-4 text-left text-base leading-relaxed text-zinc-400">
@@ -223,7 +238,29 @@ export default function OfrendasVendorApplicationPage() {
         </div>
 
         <div className="border-t border-zinc-800 pt-8">
-          <ApplicationForm />
+          {applicationsClosed ? (
+            <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+                Applications are closed
+              </p>
+              <p className="text-base leading-relaxed text-zinc-400">
+                We&apos;re no longer accepting new vendor applications for
+                this event. If you already applied, watch your email — you
+                should hear back soon. Follow{' '}
+                <a
+                  href="https://instagram.com/ofrendasmarket"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-zinc-300 underline underline-offset-2 hover:text-zinc-100"
+                >
+                  @Ofrendasmarket
+                </a>{' '}
+                for future calls.
+              </p>
+            </div>
+          ) : (
+            <ApplicationForm />
+          )}
         </div>
 
         <div className="border-t border-zinc-800 pt-6 text-center text-sm leading-relaxed text-zinc-500">

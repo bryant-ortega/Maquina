@@ -10,6 +10,7 @@ import {
   getClientIp,
   RATE_LIMITS,
 } from '@/lib/rate-limit'
+import { isOfrendasApplicationClosed } from './deadline'
 
 /**
  * Server action for /ofrendas-vendors — the standalone Ofrendas vendor
@@ -155,6 +156,18 @@ export async function submitOfrendasVendorApplication(
   // writing anything.
   if (formData.get('company_url')) {
     return { ok: true }
+  }
+
+  // Belt-and-suspenders: page.tsx already hides the form after the
+  // deadline, but this stops a direct POST (cached page, replayed
+  // request, dev tools) from sneaking a late application in.
+  if (isOfrendasApplicationClosed()) {
+    return {
+      ok: false,
+      reason: 'error',
+      message:
+        'Applications for Ofrendas are closed. Thanks for your interest — watch our Instagram @Ofrendasmarket for future calls.',
+    }
   }
 
   // Public, unauthenticated form — rate limited to 5 submissions /
