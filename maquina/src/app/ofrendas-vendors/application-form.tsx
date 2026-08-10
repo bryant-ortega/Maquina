@@ -186,7 +186,18 @@ function SectionHeading({
   )
 }
 
-export function ApplicationForm() {
+export function ApplicationForm({
+  inviteCode,
+}: {
+  /**
+   * Present only on the private invite route
+   * (invite/[code]/page.tsx). Passed straight through to the submit
+   * action, which uses it to bypass the public deadline and, on a
+   * successful submit, atomically marks the invite used — see
+   * claimOfrendasVendorInvite in src/lib/ofrendas-invites.ts.
+   */
+  inviteCode?: string
+} = {}) {
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -210,6 +221,7 @@ export function ApplicationForm() {
     setServerError(null)
     const fd = new FormData()
     if (honeypot) fd.set('company_url', honeypot)
+    if (inviteCode) fd.set('invite_code', inviteCode)
     fd.set('business_name', values.business_name)
     fd.set('vendor_names', values.vendor_names)
     fd.set('email', values.email)

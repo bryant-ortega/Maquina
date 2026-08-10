@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { BulkEmailButton } from './bulk-email-button'
+import { GenerateInviteLink } from './generate-invite'
 import { ApprovedCheckbox, PaidCheckbox } from './status-toggles'
 
 /**
@@ -199,6 +200,7 @@ export default async function OfrendasVendorApplicationsPage({
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-3">
+            <GenerateInviteLink />
             <BulkEmailButton kind="approved" pendingCount={approvedPendingEmail} />
             <BulkEmailButton kind="paid" pendingCount={paidPendingEmail} />
           </div>

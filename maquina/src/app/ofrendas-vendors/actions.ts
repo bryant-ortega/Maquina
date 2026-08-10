@@ -11,6 +11,7 @@ import {
   RATE_LIMITS,
 } from '@/lib/rate-limit'
 import { isOfrendasApplicationClosed } from './deadline'
+import { claimOfrendasVendorInvite } from '@/lib/ofrendas-invites'
 
 /**
  * Server action for /ofrendas-vendors — the standalone Ofrendas vendor
@@ -158,10 +159,21 @@ export async function submitOfrendasVendorApplication(
     return { ok: true }
   }
 
+  // A private invite link (invite/[code]/page.tsx) bypasses the
+  // public deadline for this one submission — the code itself still
+  // gets validated + atomically claimed below, after field validation
+  // passes, so a bad/expired/reused code is rejected either way.
+  const inviteCodeRaw = formData.get('invite_code')
+  const inviteCode =
+    typeof inviteCodeRaw === 'string' && inviteCodeRaw.trim()
+      ? inviteCodeRaw.trim()
+      : null
+
   // Belt-and-suspenders: page.tsx already hides the form after the
   // deadline, but this stops a direct POST (cached page, replayed
-  // request, dev tools) from sneaking a late application in.
-  if (isOfrendasApplicationClosed()) {
+  // request, dev tools) from sneaking a late application in — unless
+  // it's carrying a valid invite code.
+  if (!inviteCode && isOfrendasApplicationClosed()) {
     return {
       ok: false,
       reason: 'error',
@@ -223,6 +235,22 @@ export async function submitOfrendasVendorApplication(
     }
   }
 
+  // Claim the invite now, right before writing the application — a
+  // code only gets burned once we know the rest of the form is valid.
+  // Atomic (WHERE used_at IS NULL) so two submissions racing on the
+  // same link can't both succeed.
+  if (inviteCode) {
+    const claimed = await claimOfrendasVendorInvite(inviteCode)
+    if (!claimed) {
+      return {
+        ok: false,
+        reason: 'error',
+        message:
+          "This invite link isn't valid anymore — it may have already been used. Reach out to ofrendasmarket@gmail.com for a new one.",
+      }
+    }
+  }
+
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -248,6 +276,7 @@ export async function submitOfrendasVendorApplication(
     agreement_accepted: parsed.data.agreement_accepted,
     content_use_consent: parsed.data.content_use_consent,
     booth_decor_plan: parsed.data.booth_decor_plan ?? null,
+    invite_code: inviteCode,
   })
 
   if (error) {

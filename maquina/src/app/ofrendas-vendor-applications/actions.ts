@@ -7,6 +7,7 @@ import {
   sendOfrendasVendorApprovalEmail,
   sendOfrendasVendorPaymentConfirmationEmail,
 } from '@/lib/email'
+import { createOfrendasVendorInvite } from '@/lib/ofrendas-invites'
 
 /**
  * Actions for the Ofrendas vendor applications view — usable by admins
@@ -218,4 +219,51 @@ export async function sendPaidVendorEmails(): Promise<SendBulkEmailResult> {
 
   revalidatePath('/ofrendas-vendor-applications')
   return { ok: true, sent, skipped, failed }
+}
+
+export type GenerateInviteResult =
+  | { ok: true; url: string }
+  | { ok: false; reason: 'unauth' | 'forbidden' }
+  | { ok: false; reason: 'db_failed'; message: string }
+
+/**
+ * Creates a private invite link that bypasses the public application
+ * deadline for one specific vendor (src/lib/ofrendas-invites.ts).
+ * Available to the same admin/ofrendas_partner group as the rest of
+ * this page. `note` is a free-text reminder for whoever generated the
+ * link ("Maria's Tamales, texted 8/12") — never shown to the vendor.
+ *
+ * Returns the link to copy/paste and send however makes sense; this
+ * app doesn't email it automatically.
+ */
+export async function generateOfrendasVendorInvite(
+  note: string
+): Promise<GenerateInviteResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+
+  // Best-effort attribution — requireAdmin() already confirmed the
+  // caller is signed in with an allowed role, so a failure to resolve
+  // their profile id here just means the invite's created_by is left
+  // null rather than blocking generation.
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  let profileId: string | null = null
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    profileId = profile?.id ?? null
+  }
+
+  const result = await createOfrendasVendorInvite(note, profileId)
+  if (!result.ok) {
+    return { ok: false, reason: 'db_failed', message: result.message }
+  }
+
+  return { ok: true, url: result.url }
 }
