@@ -3,7 +3,10 @@
 import { headers } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
-import { sendOfrendasVendorApplicationReceipt } from '@/lib/email'
+import {
+  sendOfrendasVendorApplicationReceipt,
+  sendOfrendasVendorApprovalEmail,
+} from '@/lib/email'
 import {
   checkRateLimit,
   formatRetryAfter,
@@ -257,27 +260,42 @@ export async function submitOfrendasVendorApplication(
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const { error } = await admin.from('ofrendas_vendor_applications').insert({
-    business_name: parsed.data.business_name,
-    vendor_names: parsed.data.vendor_names,
-    email: parsed.data.email,
-    phone: parsed.data.phone,
-    instagram_handle: parsed.data.instagram_handle,
-    website_url: parsed.data.website_url ?? null,
-    offerings: parsed.data.offerings,
-    offerings_other: parsed.data.offerings_other ?? null,
-    best_fit: parsed.data.best_fit,
-    best_fit_other: parsed.data.best_fit_other ?? null,
-    business_description: parsed.data.business_description,
-    space_needed: parsed.data.space_needed,
-    food_permit_status: parsed.data.food_permit_status,
-    food_permit_other: parsed.data.food_permit_other ?? null,
-    menu_description: parsed.data.menu_description ?? null,
-    agreement_accepted: parsed.data.agreement_accepted,
-    content_use_consent: parsed.data.content_use_consent,
-    booth_decor_plan: parsed.data.booth_decor_plan ?? null,
-    invite_code: inviteCode,
-  })
+  // A submission that came through a private invite link means an
+  // admin already decided this vendor is in — skip the normal review
+  // queue and mark it approved immediately, same as manually checking
+  // the "Approved" box on the admin page would. approved_email_sent_at
+  // is left unset here and only stamped below once the email actually
+  // sends (dormant-safe, same convention as the bulk "Email approved
+  // vendors" button), so if it fails or RESEND_API_KEY isn't
+  // configured, the row stays picked up by that button next time.
+  const nowIso = new Date().toISOString()
+
+  const { data: inserted, error } = await admin
+    .from('ofrendas_vendor_applications')
+    .insert({
+      business_name: parsed.data.business_name,
+      vendor_names: parsed.data.vendor_names,
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      instagram_handle: parsed.data.instagram_handle,
+      website_url: parsed.data.website_url ?? null,
+      offerings: parsed.data.offerings,
+      offerings_other: parsed.data.offerings_other ?? null,
+      best_fit: parsed.data.best_fit,
+      best_fit_other: parsed.data.best_fit_other ?? null,
+      business_description: parsed.data.business_description,
+      space_needed: parsed.data.space_needed,
+      food_permit_status: parsed.data.food_permit_status,
+      food_permit_other: parsed.data.food_permit_other ?? null,
+      menu_description: parsed.data.menu_description ?? null,
+      agreement_accepted: parsed.data.agreement_accepted,
+      content_use_consent: parsed.data.content_use_consent,
+      booth_decor_plan: parsed.data.booth_decor_plan ?? null,
+      invite_code: inviteCode,
+      ...(inviteCode ? { approved: true, approved_at: nowIso } : {}),
+    })
+    .select('id')
+    .single()
 
   if (error) {
     return {
@@ -286,6 +304,32 @@ export async function submitOfrendasVendorApplication(
       message:
         'Something went wrong submitting your application. Please try again in a moment.',
     }
+  }
+
+  if (inviteCode) {
+    // Invite path: skip the generic "we got your application, we'll
+    // review it" receipt — they're already approved, so send that
+    // instead. Best-effort, same as the receipt email below: never
+    // blocks a successful submission.
+    try {
+      const result = await sendOfrendasVendorApprovalEmail({
+        to: parsed.data.email,
+        contactName: parsed.data.vendor_names,
+        businessName: parsed.data.business_name,
+      })
+      if (result.ok) {
+        await admin
+          .from('ofrendas_vendor_applications')
+          .update({ approved_email_sent_at: nowIso })
+          .eq('id', inserted.id)
+      }
+    } catch {
+      // ignore — application + approval already saved; the "Email
+      // approved vendors" bulk button will pick this row up next time
+      // since approved_email_sent_at is still null
+    }
+
+    return { ok: true }
   }
 
   // Best-effort receipt email — dormant-safe (no-op without

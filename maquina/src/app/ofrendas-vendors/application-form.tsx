@@ -270,12 +270,24 @@ export function ApplicationForm({
     return (
       <div className="space-y-2 rounded-md border border-zinc-700 bg-zinc-900 p-5 text-center">
         <p className="text-base font-medium text-zinc-100">
-          Thanks — your application is in. 🖤
+          {inviteCode
+            ? "You're approved — thanks! 🖤"
+            : 'Thanks — your application is in. 🖤'}
         </p>
         <p className="text-sm text-zinc-400">
-          Applying doesn&apos;t guarantee a spot — we review every submission
-          against our curation criteria. Watch your email; if you haven&apos;t
-          heard back, assume you&apos;re on the waitlist and sit tight.
+          {inviteCode ? (
+            <>
+              Check your email for confirmation and next steps — payment
+              instructions will follow separately to lock in your space.
+            </>
+          ) : (
+            <>
+              Applying doesn&apos;t guarantee a spot — we review every
+              submission against our curation criteria. Watch your email;
+              if you haven&apos;t heard back, assume you&apos;re on the
+              waitlist and sit tight.
+            </>
+          )}
         </p>
       </div>
     )
