@@ -289,17 +289,19 @@ export async function sendOfrendasVendorApprovalEmail(args: {
     heading: `You're approved for Ofrendas 🖤`,
     bodyHtml: `
       <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
-      <p style="margin:0 0 12px;">Good news — <strong>${escapeHtml(args.businessName)}</strong> is approved as a vendor for <strong>Ofrendas: A Community Market</strong> at The Regent Theater, LA, on Sunday, September 20, 2026.</p>
-      <p style="margin:0 0 12px;">Next step is securing your space: we'll follow up separately with payment instructions to lock it in. Once payment is received you're fully confirmed.</p>
-      <p style="margin:0 0 16px;">Questions in the meantime? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
-      <p style="margin:0;">Gracias,<br>LosGothsCo</p>
+      <p style="margin:0 0 12px;">Felicidades! <strong>${escapeHtml(args.businessName)}</strong> is approved as a vendor for <strong>Ofrendas: A Community Market</strong> at The Regent Theater, LA, on Sunday, September 20, 2026.</p>
+      <p style="margin:0 0 12px;">Next step is securing your space. You can pay via:</p>
+      <p style="margin:0 0 12px;">Venmo: @Stephanie-Gonzalez-56709<br>or<br>Zelle: 8187922493</p>
+      <p style="margin:0 0 12px;">Please send payment within 48 hours to be confirmed. We know that feels quick. We hold spots on a short window so we can offer them to another vendor if it doesn't work out, and so we can keep our marketing timeline on track. If we don't receive payment within 48 hours, we'll release your spot to the next vendor on our list.</p>
+      <p style="margin:0 0 16px;">Questions in the meantime? Please reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
+      <p style="margin:0;">Gracias,<br>Ofrendas Team</p>
     `,
   })
   return sendEmail({
     to: args.to,
     subject: "You're approved for Ofrendas 🖤",
     html,
-    text: `Hi ${args.contactName}, good news — ${args.businessName} is approved as a vendor for Ofrendas: A Community Market at The Regent Theater, LA, on Sunday, September 20, 2026. Next step is securing your space: we'll follow up separately with payment instructions to lock it in. Once payment is received you're fully confirmed. Questions in the meantime? Reach out to ${supportEmail}. Gracias, LosGothsCo.`,
+    text: `Hi ${args.contactName}, Felicidades! ${args.businessName} is approved as a vendor for Ofrendas: A Community Market at The Regent Theater, LA, on Sunday, September 20, 2026. Next step is securing your space. You can pay via: Venmo @Stephanie-Gonzalez-56709 or Zelle 8187922493. Please send payment within 48 hours to be confirmed. We know that feels quick. We hold spots on a short window so we can offer them to another vendor if it doesn't work out, and so we can keep our marketing timeline on track. If we don't receive payment within 48 hours, we'll release your spot to the next vendor on our list. Questions in the meantime? Please reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
   })
 }
 
@@ -320,15 +322,16 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
       <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
       <p style="margin:0 0 12px;">We've received payment for <strong>${escapeHtml(args.businessName)}</strong>'s space at <strong>Ofrendas: A Community Market</strong> — The Regent Theater, LA, Sunday, September 20, 2026. You're all set!</p>
       <p style="margin:0 0 12px;">We'll be in touch closer to the date with load-in time and any final logistics. In the meantime, follow along at <a href="https://instagram.com/ofrendasmarket" style="color:#18181b;">@ofrendasmarket</a>.</p>
+      <p style="margin:0 0 12px;">One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead.</p>
       <p style="margin:0 0 16px;">Questions? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
-      <p style="margin:0;">Gracias,<br>LosGothsCo</p>
+      <p style="margin:0;">Gracias,<br>Ofrendas Team</p>
     `,
   })
   return sendEmail({
     to: args.to,
     subject: "You're confirmed for Ofrendas — payment received",
     html,
-    text: `Hi ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. Questions? Reach out to ${supportEmail}. Gracias, LosGothsCo.`,
+    text: `Hi ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead. Questions? Reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
   })
 }
 
