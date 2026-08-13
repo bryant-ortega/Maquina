@@ -21,7 +21,7 @@ import Link from 'next/link'
  * before relying on it for anything higher-stakes.
  */
 export const metadata: Metadata = {
-  title: 'Ofrendas Vendor Application — Privacy Policy',
+  title: 'Ofrendas Vendor Application: Privacy Policy',
   robots: { index: false, follow: false },
 }
 
@@ -50,7 +50,7 @@ export default function OfrendasPrivacyPolicyPage() {
       <div className="w-full max-w-2xl space-y-8 rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-sm sm:p-10">
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
-            Ofrendas Vendor Application — Privacy Policy
+            Ofrendas Vendor Application: Privacy Policy
           </h1>
           <p className="text-sm text-zinc-500">Last updated August 13, 2026</p>
         </div>
@@ -68,7 +68,7 @@ export default function OfrendasPrivacyPolicyPage() {
             </p>
             <p>
               We don&apos;t collect payment card, banking, or tax ID
-              information through this form — vendor fees are paid
+              information through this form. Vendor fees are paid
               separately (Venmo or Zelle) after approval, and we don&apos;t
               store those payment details.
             </p>
@@ -108,8 +108,8 @@ export default function OfrendasPrivacyPolicyPage() {
             <p>
               We keep application data for as long as needed to run the
               current Ofrendas market and follow up afterward (e.g. for a
-              future event), and delete or anonymize it on request — see
-              below.
+              future event), and delete or anonymize it on request (see
+              below).
             </p>
           </Section>
 
