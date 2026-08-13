@@ -344,7 +344,7 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
   const html = shell({
     heading: `You're confirmed for Ofrendas 🖤`,
     bodyHtml: `
-      <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
+      <p style="margin:0 0 12px;">Hola ${escapeHtml(args.contactName)},</p>
       <p style="margin:0 0 12px;">We've received payment for <strong>${escapeHtml(args.businessName)}</strong>'s space at <strong>Ofrendas: A Community Market</strong> — The Regent Theater, LA, Sunday, September 20, 2026. You're all set!</p>
       <p style="margin:0 0 12px;">We'll be in touch closer to the date with load-in time and any final logistics. In the meantime, follow along at <a href="https://instagram.com/ofrendasmarket" style="color:#18181b;">@ofrendasmarket</a>.</p>
       <p style="margin:0 0 12px;">One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead.</p>
@@ -356,7 +356,7 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
     to: args.to,
     subject: "You're confirmed for Ofrendas — payment received",
     html,
-    text: `Hi ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead. Questions? Reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
+    text: `Hola ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead. Questions? Reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
     from: OFRENDAS_FROM,
   })
 }
