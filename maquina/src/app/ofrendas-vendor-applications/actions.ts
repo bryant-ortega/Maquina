@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import {
   sendOfrendasVendorApprovalEmail,
   sendOfrendasVendorPaymentConfirmationEmail,
+  sendOfrendasVendorWaitlistEmail,
 } from '@/lib/email'
 import { createOfrendasVendorInvite } from '@/lib/ofrendas-invites'
 
@@ -210,6 +211,54 @@ export async function sendPaidVendorEmails(): Promise<SendBulkEmailResult> {
       await admin
         .from('ofrendas_vendor_applications')
         .update({ paid_email_sent_at: new Date().toISOString() })
+        .eq('id', row.id)
+    } else if (result.skipped) {
+      skipped++
+    } else {
+      failed++
+    }
+  }
+
+  revalidatePath('/ofrendas-vendor-applications')
+  return { ok: true, sent, skipped, failed }
+}
+
+/**
+ * Same bulk-send pattern as sendApprovedVendorEmails / sendPaidVendorEmails,
+ * but for the "Email waitlisted vendors" button — every application NOT
+ * marked approved that hasn't gotten the waitlist email yet
+ * (waitlist_email_sent_at IS NULL). Unlike approved/paid there's no
+ * boolean to toggle back off, so once an application is approved after
+ * having already gotten this email, it simply won't be re-sent.
+ */
+export async function sendWaitlistVendorEmails(): Promise<SendBulkEmailResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+
+  const admin = serviceClient()
+  const { data: rows, error } = await admin
+    .from('ofrendas_vendor_applications')
+    .select('id, email, vendor_names, business_name')
+    .eq('approved', false)
+    .is('waitlist_email_sent_at', null)
+
+  if (error) return { ok: false, reason: 'db_failed', message: error.message }
+
+  let sent = 0
+  let skipped = 0
+  let failed = 0
+
+  for (const row of rows ?? []) {
+    const result = await sendOfrendasVendorWaitlistEmail({
+      to: row.email,
+      contactName: row.vendor_names,
+      businessName: row.business_name,
+    })
+    if (result.ok) {
+      sent++
+      await admin
+        .from('ofrendas_vendor_applications')
+        .update({ waitlist_email_sent_at: new Date().toISOString() })
         .eq('id', row.id)
     } else if (result.skipped) {
       skipped++

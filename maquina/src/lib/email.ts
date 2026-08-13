@@ -361,3 +361,34 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
   })
 }
 
+/**
+ * Ofrendas vendor-call waitlist notice. Sent in bulk from the admin
+ * "Email waitlisted vendors" button — every application NOT marked
+ * approved (approved = false), one send per vendor, same
+ * one-send-per-vendor / no-shared-recipient pattern as the approval
+ * and payment emails above.
+ */
+export async function sendOfrendasVendorWaitlistEmail(args: {
+  to: string
+  contactName: string
+  businessName: string
+}): Promise<SendResult> {
+  const html = shell({
+    heading: `Update on your Ofrendas application 🖤`,
+    bodyHtml: `
+      <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
+      <p style="margin:0 0 12px;">Muchísimas gracias for applying to be part of our first Ofrendas Community Market! We were so moved by the number of applications we received, and truly appreciate you taking the time to share <strong>${escapeHtml(args.businessName)}</strong> and your work with us.</p>
+      <p style="margin:0 0 12px;">This year we had way more incredible applicants than we had spaces for, so we've placed your application on our waitlist. If any additional spaces open up after our vendor payment deadline, we'll be reaching out right away.</p>
+      <p style="margin:0 0 12px;">We know this isn't the answer you were hoping for, and we don't take your interest in Ofrendas for granted. Follow along at <a href="https://instagram.com/ofrendasmarket" style="color:#18181b;">@ofrendasmarket</a> for updates, and we hope to see you at a future market.</p>
+      <p style="margin:0;">Gracias de corazón,<br>Ofrendas Team</p>
+    `,
+  })
+  return sendEmail({
+    to: args.to,
+    subject: 'Update on your Ofrendas application 🖤',
+    html,
+    text: `Hi ${args.contactName}, Muchísimas gracias for applying to be part of our first Ofrendas Community Market! We were so moved by the number of applications we received, and truly appreciate you taking the time to share ${args.businessName} and your work with us. This year we had way more incredible applicants than we had spaces for, so we've placed your application on our waitlist. If any additional spaces open up after our vendor payment deadline, we'll be reaching out right away. We know this isn't the answer you were hoping for, and we don't take your interest in Ofrendas for granted. Follow along at @ofrendasmarket for updates, and we hope to see you at a future market. Gracias de corazón, Ofrendas Team.`,
+    from: OFRENDAS_FROM,
+  })
+}
+

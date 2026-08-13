@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import {
   sendApprovedVendorEmails,
   sendPaidVendorEmails,
+  sendWaitlistVendorEmails,
   type SendBulkEmailResult,
 } from './actions'
 
@@ -19,14 +20,18 @@ export function BulkEmailButton({
   kind,
   pendingCount,
 }: {
-  kind: 'approved' | 'paid'
+  kind: 'approved' | 'paid' | 'waitlist'
   pendingCount: number
 }) {
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
 
   const label =
-    kind === 'approved' ? 'Email approved vendors' : 'Email paid vendors'
+    kind === 'approved'
+      ? 'Email approved vendors'
+      : kind === 'paid'
+        ? 'Email paid vendors'
+        : 'Email waitlisted vendors'
 
   function onClick() {
     setMessage(null)
@@ -34,7 +39,9 @@ export function BulkEmailButton({
       const result: SendBulkEmailResult =
         kind === 'approved'
           ? await sendApprovedVendorEmails()
-          : await sendPaidVendorEmails()
+          : kind === 'paid'
+            ? await sendPaidVendorEmails()
+            : await sendWaitlistVendorEmails()
 
       if (!result.ok) {
         setMessage(messageFor(result))

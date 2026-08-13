@@ -96,6 +96,7 @@ type ApplicationRow = {
   approved_email_sent_at: string | null
   paid: boolean
   paid_email_sent_at: string | null
+  waitlist_email_sent_at: string | null
   created_at: string
 }
 
@@ -121,7 +122,7 @@ export default async function OfrendasVendorApplicationsPage({
   const { data: applications, error } = await admin
     .from('ofrendas_vendor_applications')
     .select(
-      'id, business_name, vendor_names, email, phone, best_fit, best_fit_other, offerings, space_needed, food_permit_status, approved, approved_email_sent_at, paid, paid_email_sent_at, created_at'
+      'id, business_name, vendor_names, email, phone, best_fit, best_fit_other, offerings, space_needed, food_permit_status, approved, approved_email_sent_at, paid, paid_email_sent_at, waitlist_email_sent_at, created_at'
     )
     .order('created_at', { ascending: false })
 
@@ -159,6 +160,9 @@ export default async function OfrendasVendorApplicationsPage({
   ).length
   const paidPendingEmail = rows.filter(
     (r) => r.paid && !r.paid_email_sent_at
+  ).length
+  const waitlistPendingEmail = rows.filter(
+    (r) => !r.approved && !r.waitlist_email_sent_at
   ).length
 
   // Category counts come from the unfiltered set so chip labels are stable.
@@ -203,6 +207,7 @@ export default async function OfrendasVendorApplicationsPage({
             <GenerateInviteLink />
             <BulkEmailButton kind="approved" pendingCount={approvedPendingEmail} />
             <BulkEmailButton kind="paid" pendingCount={paidPendingEmail} />
+            <BulkEmailButton kind="waitlist" pendingCount={waitlistPendingEmail} />
           </div>
         </header>
 
