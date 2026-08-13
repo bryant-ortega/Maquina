@@ -578,6 +578,18 @@ export function ApplicationForm({
             {errors.agreement_accepted.message}
           </p>
         )}
+        <p className="text-xs text-zinc-500">
+          See our{' '}
+          <a
+            href="/ofrendas-vendors/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-zinc-300"
+          >
+            Privacy Policy
+          </a>{' '}
+          for how we handle your information.
+        </p>
       </div>
 
       <Field

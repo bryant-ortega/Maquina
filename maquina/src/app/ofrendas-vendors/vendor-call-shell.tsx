@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 
 /**
  * Shared visual shell for the Ofrendas vendor call — the header, the
@@ -230,6 +231,14 @@ export function OfrendasVendorCallShell({
             leading up to the event get shared through that DM group and
             email, so keep an eye on both. Say hi and ask questions any
             time! Happy vending! 🖤
+          </p>
+          <p className="mt-4">
+            <Link
+              href="/ofrendas-vendors/privacy"
+              className="underline underline-offset-2 hover:text-zinc-300"
+            >
+              Privacy Policy
+            </Link>
           </p>
         </div>
       </div>
