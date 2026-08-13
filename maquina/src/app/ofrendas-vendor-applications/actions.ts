@@ -144,7 +144,7 @@ export async function sendApprovedVendorEmails(): Promise<SendBulkEmailResult> {
   const admin = serviceClient()
   const { data: rows, error } = await admin
     .from('ofrendas_vendor_applications')
-    .select('id, email, vendor_names, business_name')
+    .select('id, email, vendor_names, business_name, space_needed')
     .eq('approved', true)
     .is('approved_email_sent_at', null)
 
@@ -159,6 +159,7 @@ export async function sendApprovedVendorEmails(): Promise<SendBulkEmailResult> {
       to: row.email,
       contactName: row.vendor_names,
       businessName: row.business_name,
+      spaceNeeded: row.space_needed,
     })
     if (result.ok) {
       sent++

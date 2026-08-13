@@ -25,6 +25,11 @@ import { Resend } from 'resend'
 // the same verified losgoths.co domain when RESEND_FROM isn't set.
 const FROM_FALLBACK = 'Maquina <maquina@losgoths.co>'
 
+// Ofrendas vendor-call emails (approval + payment confirmation) always
+// send under this display name, regardless of RESEND_FROM, so vendors
+// consistently see "Ofrendas Team" rather than "Maquina".
+const OFRENDAS_FROM = 'Ofrendas Team <maquina@losgoths.co>'
+
 export type SendResult =
   | { ok: true; id: string | null }
   | { ok: false; skipped: true; reason: 'no_api_key' }
@@ -273,6 +278,21 @@ export async function sendOfrendasVendorApplicationReceipt(args: {
 }
 
 /**
+ * $55/space, sold as "1 space" or "2 spaces" (see SPACE_OPTIONS in
+ * src/app/ofrendas-vendors/application-form.tsx — the space_needed
+ * column stores the full label, e.g. "2 spaces (up to 10x10
+ * footprint)"). Only two options exist today; this reads the leading
+ * digit so it still does something sane if that copy changes slightly.
+ */
+function ofrendasSpaceCount(spaceNeeded: string): 1 | 2 {
+  return spaceNeeded.trim().startsWith('2') ? 2 : 1
+}
+
+function ofrendasAmountDue(spaceNeeded: string): number {
+  return ofrendasSpaceCount(spaceNeeded) === 2 ? 110 : 55
+}
+
+/**
  * Ofrendas vendor-call approval notice. Sent in bulk from the admin
  * "Email approved vendors" button on
  * src/app/(admin)/ofrendas-vendor-applications/page.tsx — one send per
@@ -283,16 +303,20 @@ export async function sendOfrendasVendorApprovalEmail(args: {
   to: string
   contactName: string
   businessName: string
+  spaceNeeded: string
 }): Promise<SendResult> {
   const supportEmail = 'ofrendasmarket@gmail.com'
+  const spaceCount = ofrendasSpaceCount(args.spaceNeeded)
+  const spaceLabel = spaceCount === 2 ? '2 spaces (10ft x 10ft)' : '1 space (6ft x 6ft)'
+  const amountDue = ofrendasAmountDue(args.spaceNeeded)
   const html = shell({
     heading: `You're approved for Ofrendas 🖤`,
     bodyHtml: `
       <p style="margin:0 0 12px;">Hi ${escapeHtml(args.contactName)},</p>
       <p style="margin:0 0 12px;">Felicidades! <strong>${escapeHtml(args.businessName)}</strong> is approved as a vendor for <strong>Ofrendas: A Community Market</strong> at The Regent Theater, LA, on Sunday, September 20, 2026.</p>
-      <p style="margin:0 0 12px;">Next step is securing your space. You can pay via:</p>
+      <p style="margin:0 0 12px;">Next step is securing your space. You requested <strong>${spaceLabel}</strong>, so please send <strong>$${amountDue}</strong> via one of these payment methods:</p>
       <p style="margin:0 0 12px;">Venmo: @Stephanie-Gonzalez-56709<br>or<br>Zelle: 8187922493</p>
-      <p style="margin:0 0 12px;">Please send payment within 48 hours to be confirmed. We know that feels quick. We hold spots on a short window so we can offer them to another vendor if it doesn't work out, and so we can keep our marketing timeline on track. If we don't receive payment within 48 hours, we'll release your spot to the next vendor on our list.</p>
+      <p style="margin:0 0 12px;">Please send payment within 48 hours (by this Friday, 8/14 at midnight PST) to be confirmed. We know that feels quick. We hold spots on a short window so we can offer them to another vendor if it doesn't work out, and so we can keep our marketing timeline on track. If we don't receive payment within 48 hours, we'll release your spot to the next vendor on our list.</p>
       <p style="margin:0 0 16px;">Questions in the meantime? Please reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
       <p style="margin:0;">Gracias,<br>Ofrendas Team</p>
     `,
@@ -301,7 +325,8 @@ export async function sendOfrendasVendorApprovalEmail(args: {
     to: args.to,
     subject: "You're approved for Ofrendas 🖤",
     html,
-    text: `Hi ${args.contactName}, Felicidades! ${args.businessName} is approved as a vendor for Ofrendas: A Community Market at The Regent Theater, LA, on Sunday, September 20, 2026. Next step is securing your space. You can pay via: Venmo @Stephanie-Gonzalez-56709 or Zelle 8187922493. Please send payment within 48 hours to be confirmed. We know that feels quick. We hold spots on a short window so we can offer them to another vendor if it doesn't work out, and so we can keep our marketing timeline on track. If we don't receive payment within 48 hours, we'll release your spot to the next vendor on our list. Questions in the meantime? Please reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
+    text: `Hi ${args.contactName}, Felicidades! ${args.businessName} is approved as a vendor for Ofrendas: A Community Market at The Regent Theater, LA, on Sunday, September 20, 2026. Next step is securing your space. You requested ${spaceLabel}, so please send $${amountDue} via one of these payment methods: Venmo @Stephanie-Gonzalez-56709 or Zelle 8187922493. Please send payment within 48 hours (by this Friday, 8/14 at midnight PST) to be confirmed. We know that feels quick. We hold spots on a short window so we can offer them to another vendor if it doesn't work out, and so we can keep our marketing timeline on track. If we don't receive payment within 48 hours, we'll release your spot to the next vendor on our list. Questions in the meantime? Please reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
+    from: OFRENDAS_FROM,
   })
 }
 
@@ -332,6 +357,7 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
     subject: "You're confirmed for Ofrendas — payment received",
     html,
     text: `Hi ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead. Questions? Reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
+    from: OFRENDAS_FROM,
   })
 }
 

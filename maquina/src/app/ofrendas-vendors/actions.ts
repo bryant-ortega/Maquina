@@ -316,6 +316,7 @@ export async function submitOfrendasVendorApplication(
         to: parsed.data.email,
         contactName: parsed.data.vendor_names,
         businessName: parsed.data.business_name,
+        spaceNeeded: parsed.data.space_needed,
       })
       if (result.ok) {
         await admin
