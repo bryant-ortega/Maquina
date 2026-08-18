@@ -136,7 +136,6 @@ function shell(opts: { heading: string; bodyHtml: string }): string {
             ${opts.bodyHtml}
           </td></tr>
         </table>
-        <p style="margin:16px 0 0;font-size:11px;color:#a1a1aa;">Sent by Maquina, LosGothsCo's event operations tool.</p>
       </td></tr>
     </table>
   </body>
@@ -347,8 +346,8 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
       <p style="margin:0 0 12px;">Hola ${escapeHtml(args.contactName)},</p>
       <p style="margin:0 0 12px;">We've received payment for <strong>${escapeHtml(args.businessName)}</strong>'s space at <strong>Ofrendas: A Community Market</strong> — The Regent Theater, LA, Sunday, September 20, 2026. You're all set!</p>
       <p style="margin:0 0 12px;">We'll be in touch closer to the date with load-in time and any final logistics. In the meantime, follow along at <a href="https://instagram.com/ofrendasmarket" style="color:#18181b;">@ofrendasmarket</a>.</p>
-      <p style="margin:0 0 12px;">One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead.</p>
-      <p style="margin:0 0 16px;">Questions? Reach out to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
+      <p style="margin:0 0 12px;">One thing we need from you: please send a decent-resolution PNG of your logo to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a> so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead.</p>
+      <p style="margin:0 0 16px; font-style:italic; color:#71717a;">This is a no-reply address — replies here won't be seen. Send your logo (or any questions) to ${supportEmail}.</p>
       <p style="margin:0;">Gracias,<br>Ofrendas Team</p>
     `,
   })
@@ -356,8 +355,9 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
     to: args.to,
     subject: "You're confirmed for Ofrendas — payment received",
     html,
-    text: `Hola ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. One thing we need from you: please send us a decent-resolution PNG of your logo so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead. Questions? Reach out to ${supportEmail}. Gracias, Ofrendas Team.`,
-    from: OFRENDAS_FROM,
+    text: `Hola ${args.contactName}, we've received payment for ${args.businessName}'s space at Ofrendas: A Community Market — The Regent Theater, LA, Sunday, September 20, 2026. You're all set! We'll be in touch closer to the date with load-in time and any final logistics. Follow along at @ofrendasmarket. One thing we need from you: please send a decent-resolution PNG of your logo to ${supportEmail} so we can include it in marketing. If we don't have it within 48 hours, we'll pick a font to promote you with instead. This is a no-reply address — replies here won't be seen. Send your logo (or any questions) to ${supportEmail}. Gracias, Ofrendas Team.`,
+    from: 'Ofrendas Team (No-Reply) <maquina@losgoths.co>',
+    replyTo: supportEmail,
   })
 }
 
