@@ -63,9 +63,13 @@ Never assume a migration in the repo has been applied — check the live schema.
 
 ### Access control
 
-`profiles.roles` is a `text[]`. Current roles: `admin`, `dj`, `vendor`, `collab`,
-`contract`, `finance`, `viewer`, `ofrendas_partner`. RLS is enabled on every
-table and enforced via `has_role()` / `get_my_role()`.
+`profiles.roles` is a `text[]`. Roles: `admin`, `dj`, `vendor`, `collab`,
+`contract`, `finance`, `viewer`, `ofrendas_partner`. (`finance` has its own route
+group and migration but is not currently assigned to any user.) RLS is enabled on
+every table and enforced via `has_role()` / `get_my_role()`.
+
+`contract` was formerly named `designer` — migration 0029 renamed it. Older
+comments and docs may still say "designer".
 
 Authorization is layered deliberately, and all three layers are expected:
 
@@ -128,8 +132,8 @@ Recent examples:
 
 ```
 Add waitlist email + bulk-send button for non-approved Ofrendas applicants
-Rename designer to contract
-Update Ofrendas payment email: no-reply notice, explicit logo address
+Add rate limiting, input validation, and security audit fixes
+Update Ofrendas payment email: no-reply notice, explicit logo address; drop shared email footer
 ```
 
 **Server actions** return discriminated result objects (`{ ok: true }` /
