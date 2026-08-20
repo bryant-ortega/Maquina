@@ -377,10 +377,10 @@ export async function sendOfrendasVendorLogoReminderEmail(args: {
 }): Promise<SendResult> {
   const supportEmail = 'ofrendasmarket@gmail.com'
   const html = shell({
-    heading: `We still need your Ofrendas logo 🖤`,
+    heading: `Final reminder: we still need your Ofrendas logo 🖤`,
     bodyHtml: `
       <p style="margin:0 0 12px;">Hola ${escapeHtml(args.contactName)},</p>
-      <p style="margin:0 0 12px;">Quick reminder — we don't have a logo on file yet for <strong>${escapeHtml(args.businessName)}</strong>'s spot at <strong>Ofrendas: A Community Market</strong>, The Regent Theater, LA, Sunday, September 20, 2026.</p>
+      <p style="margin:0 0 12px;">This is a final reminder — we don't have a logo on file yet for <strong>${escapeHtml(args.businessName)}</strong>'s spot at <strong>Ofrendas: A Community Market</strong>, The Regent Theater, LA, Sunday, September 20, 2026.</p>
       <p style="margin:0 0 12px;">Please send a decent-resolution PNG of your logo to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a> so we can include it in marketing. If we don't have it soon, we'll pick a font to promote you with instead.</p>
       <p style="margin:0 0 16px; font-style:italic; color:#71717a;">This is a no-reply address — replies here won't be seen. Send your logo (or any questions) to ${supportEmail}.</p>
       <p style="margin:0;">Gracias,<br>Ofrendas Team</p>
@@ -388,9 +388,9 @@ export async function sendOfrendasVendorLogoReminderEmail(args: {
   })
   return sendEmail({
     to: args.to,
-    subject: 'We still need your Ofrendas logo 🖤',
+    subject: 'Final reminder: we still need your Ofrendas logo 🖤',
     html,
-    text: `Hola ${args.contactName}, quick reminder — we don't have a logo on file yet for ${args.businessName}'s spot at Ofrendas: A Community Market, The Regent Theater, LA, Sunday, September 20, 2026. Please send a decent-resolution PNG of your logo to ${supportEmail} so we can include it in marketing. If we don't have it soon, we'll pick a font to promote you with instead. This is a no-reply address — replies here won't be seen. Send your logo (or any questions) to ${supportEmail}. Gracias, Ofrendas Team.`,
+    text: `Hola ${args.contactName}, this is a final reminder — we don't have a logo on file yet for ${args.businessName}'s spot at Ofrendas: A Community Market, The Regent Theater, LA, Sunday, September 20, 2026. Please send a decent-resolution PNG of your logo to ${supportEmail} so we can include it in marketing. If we don't have it soon, we'll pick a font to promote you with instead. This is a no-reply address — replies here won't be seen. Send your logo (or any questions) to ${supportEmail}. Gracias, Ofrendas Team.`,
     from: 'Ofrendas Team (No-Reply) <maquina@losgoths.co>',
     replyTo: supportEmail,
   })
