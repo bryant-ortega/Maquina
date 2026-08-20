@@ -8,11 +8,11 @@ import { RegistrationForm } from './registration-form'
  */
 export default function DjRegisterPage() {
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-16">
-      <div className="w-full max-w-lg space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="space-y-1.5">
-          <h1 className="text-xl font-semibold tracking-tight">Register as a DJ</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+    <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+      <div className="w-full max-w-2xl space-y-8 px-2 py-6 sm:p-10">
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Register as a DJ</h1>
+          <p className="text-base text-zinc-600 dark:text-zinc-400">
             Create your account to get added to the LosGothsCo roster.
             You&apos;ll upload your W-9 right after.
           </p>

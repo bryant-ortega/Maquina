@@ -129,7 +129,7 @@ export function RegistrationForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <Field
         label="DJ name"
         hint="Stage name as it should appear on lineups."
@@ -208,7 +208,7 @@ export function RegistrationForm() {
         </select>
       </Field>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2">
         <Field label="Pay method" error={errors.pay_method?.message}>
           <select
             {...register('pay_method')}
@@ -240,12 +240,12 @@ export function RegistrationForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        className="w-full rounded-md bg-zinc-900 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
       >
         {pending ? 'Creating account…' : 'Create account'}
       </button>
 
-      <p className="text-xs text-zinc-500 dark:text-zinc-500">
+      <p className="text-sm text-zinc-500 dark:text-zinc-500">
         Your account is created instantly. Next, we&apos;ll ask you to upload
         your W-9 so we can pay you.
       </p>
