@@ -169,6 +169,9 @@ export default async function OfrendasVendorApplicationsPage({
   const waitlistPendingEmail = rows.filter(
     (r) => !r.approved && !r.waitlist_email_sent_at
   ).length
+  const missingLogoCount = rows.filter(
+    (r) => r.paid && !r.logo_received
+  ).length
 
   // Category counts come from the unfiltered set so chip labels are stable.
   const categoryCounts = BEST_FIT_OPTIONS.reduce<Record<BestFit, number>>(
@@ -212,6 +215,7 @@ export default async function OfrendasVendorApplicationsPage({
             <GenerateInviteLink />
             <BulkEmailButton kind="approved" pendingCount={approvedPendingEmail} />
             <BulkEmailButton kind="paid" pendingCount={paidPendingEmail} />
+            <BulkEmailButton kind="logo_reminder" pendingCount={missingLogoCount} />
             <BulkEmailButton kind="waitlist" pendingCount={waitlistPendingEmail} />
           </div>
         </header>

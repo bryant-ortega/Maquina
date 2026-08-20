@@ -4,23 +4,25 @@ import { useState, useTransition } from 'react'
 import {
   sendApprovedVendorEmails,
   sendPaidVendorEmails,
+  sendLogoReminderVendorEmails,
   sendWaitlistVendorEmails,
   type SendBulkEmailResult,
 } from './actions'
 
 /**
- * "Email approved vendors" / "Email paid vendors" buttons. Each click
- * sends the matching form email to every application whose status
- * flag is on but who hasn't been emailed yet (server-side dedup — see
- * actions.ts). `pendingCount` comes from the server component so the
- * button's label and disabled state reflect the latest data after
- * revalidation.
+ * "Email approved vendors" / "Email paid vendors" / "Email vendors
+ * missing logo" buttons. Each click sends the matching form email to
+ * every application matching that kind's criteria (server-side dedup
+ * for approved/paid/waitlist — see actions.ts; logo_reminder has no
+ * dedup, it's a re-clickable nudge). `pendingCount` comes from the
+ * server component so the button's label and disabled state reflect
+ * the latest data after revalidation.
  */
 export function BulkEmailButton({
   kind,
   pendingCount,
 }: {
-  kind: 'approved' | 'paid' | 'waitlist'
+  kind: 'approved' | 'paid' | 'logo_reminder' | 'waitlist'
   pendingCount: number
 }) {
   const [pending, startTransition] = useTransition()
@@ -31,7 +33,9 @@ export function BulkEmailButton({
       ? 'Email approved vendors'
       : kind === 'paid'
         ? 'Email paid vendors'
-        : 'Email waitlisted vendors'
+        : kind === 'logo_reminder'
+          ? 'Email vendors missing logo'
+          : 'Email waitlisted vendors'
 
   function onClick() {
     setMessage(null)
@@ -41,7 +45,9 @@ export function BulkEmailButton({
           ? await sendApprovedVendorEmails()
           : kind === 'paid'
             ? await sendPaidVendorEmails()
-            : await sendWaitlistVendorEmails()
+            : kind === 'logo_reminder'
+              ? await sendLogoReminderVendorEmails()
+              : await sendWaitlistVendorEmails()
 
       if (!result.ok) {
         setMessage(messageFor(result))

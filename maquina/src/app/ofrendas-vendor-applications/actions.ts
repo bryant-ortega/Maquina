@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import {
   sendOfrendasVendorApprovalEmail,
   sendOfrendasVendorPaymentConfirmationEmail,
+  sendOfrendasVendorLogoReminderEmail,
   sendOfrendasVendorWaitlistEmail,
 } from '@/lib/email'
 import { createOfrendasVendorInvite } from '@/lib/ofrendas-invites'
@@ -249,6 +250,49 @@ export async function sendPaidVendorEmails(): Promise<SendBulkEmailResult> {
   }
 
   revalidatePath('/ofrendas-vendor-applications')
+  return { ok: true, sent, skipped, failed }
+}
+
+/**
+ * Same bulk-send pattern as sendApprovedVendorEmails / sendPaidVendorEmails,
+ * but for the "Email vendors missing logo" button — every paid
+ * application whose logo_received checkbox isn't marked. No dedup
+ * timestamp: checking logo_received removes a vendor from this list,
+ * so it's meant to be re-clicked as a manual nudge (see the header
+ * comment on sendOfrendasVendorLogoReminderEmail).
+ */
+export async function sendLogoReminderVendorEmails(): Promise<SendBulkEmailResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+
+  const admin = serviceClient()
+  const { data: rows, error } = await admin
+    .from('ofrendas_vendor_applications')
+    .select('id, email, vendor_names, business_name')
+    .eq('paid', true)
+    .eq('logo_received', false)
+
+  if (error) return { ok: false, reason: 'db_failed', message: error.message }
+
+  let sent = 0
+  let skipped = 0
+  let failed = 0
+
+  for (const row of rows ?? []) {
+    const result = await sendOfrendasVendorLogoReminderEmail({
+      to: row.email,
+      contactName: row.vendor_names,
+      businessName: row.business_name,
+    })
+    if (result.ok) {
+      sent++
+    } else if (result.skipped) {
+      skipped++
+    } else {
+      failed++
+    }
+  }
+
   return { ok: true, sent, skipped, failed }
 }
 
