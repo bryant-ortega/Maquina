@@ -912,6 +912,92 @@ export async function removeEventCollaborator(
   return { ok: true }
 }
 
+const ResetCollabPasswordInput = z.object({
+  collaborator_id: z.string().uuid(),
+  event_id: z.string().uuid(),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be 128 characters or fewer'),
+})
+
+export type ResetCollabPasswordResult =
+  | { ok: true }
+  | { ok: false; reason: 'unauthorized' }
+  | { ok: false; reason: 'invalid'; message: string }
+  | { ok: false; reason: 'not_found' }
+  | { ok: false; reason: 'db_failed'; message: string }
+
+/**
+ * Admin sets a new password for an existing collaborator. Reached from
+ * the event edit page's collaborator row, but note the password itself
+ * belongs to the collab's one auth account, not to this one event — it
+ * also affects every other event they collaborate on.
+ *
+ * We look up user_id server-side from event_collaborators rather than
+ * trusting a user_id sent by the client, and scope that lookup to both
+ * collaborator_id AND event_id so a request can't be pointed at some
+ * other event's collaborator row to blind-reset an arbitrary account.
+ *
+ * No emailed reset link here on purpose — this is the "I need to hand
+ * them a working password right now" path (mirrors the initial-password
+ * flow in addEventCollaborator). Point them at "Forgot password" instead
+ * if they can reset it themselves.
+ */
+export async function resetCollaboratorPassword(
+  raw: unknown
+): Promise<ResetCollabPasswordResult> {
+  const supabase = await createServerSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { ok: false, reason: 'unauthorized' }
+  const { data: actor } = await supabase
+    .from('profiles')
+    .select('roles')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!actor || !actor.roles?.includes('admin')) {
+    return { ok: false, reason: 'unauthorized' }
+  }
+
+  const parsed = ResetCollabPasswordInput.safeParse(raw)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      reason: 'invalid',
+      message: parsed.error.issues[0]?.message ?? 'Bad input.',
+    }
+  }
+
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  const { data: collabRow, error: findErr } = await admin
+    .from('event_collaborators')
+    .select('user_id')
+    .eq('id', parsed.data.collaborator_id)
+    .eq('event_id', parsed.data.event_id)
+    .maybeSingle()
+  if (findErr) {
+    return { ok: false, reason: 'db_failed', message: findErr.message }
+  }
+  if (!collabRow) return { ok: false, reason: 'not_found' }
+
+  const { error: updateErr } = await admin.auth.admin.updateUserById(
+    collabRow.user_id as string,
+    { password: parsed.data.password }
+  )
+  if (updateErr) {
+    return { ok: false, reason: 'db_failed', message: updateErr.message }
+  }
+
+  return { ok: true }
+}
+
 // ---------------------------------------------------------------------------
 // deleteEvent — admin removes an event entirely.
 //

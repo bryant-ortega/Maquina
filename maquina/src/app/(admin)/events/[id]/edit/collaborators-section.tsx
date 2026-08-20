@@ -4,8 +4,10 @@ import { useState, useTransition } from 'react'
 import {
   addEventCollaborator,
   removeEventCollaborator,
+  resetCollaboratorPassword,
   type AddCollabResult,
   type RemoveCollabResult,
+  type ResetCollabPasswordResult,
 } from './actions'
 
 /**
@@ -42,6 +44,8 @@ export function CollaboratorsSection({
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [armedId, setArmedId] = useState<string | null>(null)
+  const [resetId, setResetId] = useState<string | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
 
   function handleAdd(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -113,6 +117,37 @@ export function CollaboratorsSection({
     })
   }
 
+  function handleResetPassword(id: string, email: string) {
+    setError(null)
+    setNotice(null)
+    if (resetPassword.length < 8) {
+      setError('New password must be at least 8 characters.')
+      return
+    }
+    startTransition(async () => {
+      const result: ResetCollabPasswordResult = await resetCollaboratorPassword({
+        collaborator_id: id,
+        event_id: eventId,
+        password: resetPassword,
+      })
+      if (!result.ok) {
+        setError(
+          result.reason === 'unauthorized'
+            ? 'Not authorized.'
+            : result.reason === 'invalid' || result.reason === 'db_failed'
+              ? result.message
+              : result.reason === 'not_found'
+                ? 'Collaborator not found.'
+                : 'Failed to reset password.'
+        )
+        return
+      }
+      setResetId(null)
+      setResetPassword('')
+      setNotice(`Password reset. Send them ${email} with the new password.`)
+    })
+  }
+
   return (
     <section className="space-y-4 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <header className="space-y-1">
@@ -145,7 +180,39 @@ export function CollaboratorsSection({
                   })}
                 </p>
               </div>
-              {armedId === row.id ? (
+              {resetId === row.id ? (
+                <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    autoFocus
+                    disabled={pending}
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    placeholder="New password"
+                    className={`${inputClass} w-40`}
+                  />
+                  <button
+                    type="button"
+                    disabled={pending || resetPassword.length < 8}
+                    onClick={() => handleResetPassword(row.id, row.email)}
+                    className="rounded-md border border-zinc-200 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => {
+                      setResetId(null)
+                      setResetPassword('')
+                    }}
+                    className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : armedId === row.id ? (
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
@@ -165,14 +232,29 @@ export function CollaboratorsSection({
                   </button>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => setArmedId(row.id)}
-                  className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                >
-                  Remove
-                </button>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => {
+                      setResetId(row.id)
+                      setResetPassword('')
+                      setError(null)
+                      setNotice(null)
+                    }}
+                    className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  >
+                    Reset password
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => setArmedId(row.id)}
+                    className="rounded-md border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  >
+                    Remove
+                  </button>
+                </div>
               )}
             </li>
           ))}
