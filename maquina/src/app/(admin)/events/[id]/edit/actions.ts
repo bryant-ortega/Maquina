@@ -33,7 +33,14 @@ import { sendConfirmedEventCalendarInvite } from '@/lib/calendar-invite'
  *        - BUT first verify no slots reference a stage we'd delete; if
  *          they do, return invalid with a clear error per Chase's choice
  *          (option A: block, never cascade).
- *   5. Diff slots by id, same shape.
+ *   5. Slots are rebuilt wholesale: delete every existing event_dj_slots
+ *        row for the event, then bulk-INSERT the roster from the payload
+ *        in one statement. (Not diffed by id like stages — an earlier
+ *        version updated kept slots one row at a time, which could trip
+ *        event_dj_slots' UNIQUE (event_id, stage_id, slot_order)
+ *        constraint transiently whenever two slots swapped positions,
+ *        since Postgres checks it after each UPDATE rather than after the
+ *        whole batch. Delete-then-bulk-insert avoids that entirely.)
  *   6. UPDATE events row, including a regenerated event_id when
  *        date/city/state changed (option B: auto-update).
  *
@@ -335,20 +342,27 @@ export async function updateEvent(
     }
   }
 
-  // 3e. Slot diff: keep + update / insert / delete. Use ids from the form.
-  const formSlotIds = new Set(
-    data.slots.map((s) => s.id).filter((x): x is string => !!x)
-  )
-  const slotIdsToDelete = (dbSlots ?? [])
-    .map((s) => s.id as string)
-    .filter((id) => !formSlotIds.has(id))
-
-  // Apply slot deletes first so they don't conflict with stage deletes.
-  if (slotIdsToDelete.length > 0) {
+  // 3e. Delete ALL existing slots for this event up front, then rebuild the
+  // roster fresh from the form payload (3g below). This replaces the old
+  // id-based "diff and UPDATE in place" approach, which updated kept slots
+  // one row at a time via sequential UPDATE statements. That was the
+  // source of the "duplicate key value violates unique constraint
+  // event_dj_slots_event_id_stage_id_slot_order_key" save failure:
+  // Postgres checks UNIQUE (event_id, stage_id, slot_order) immediately
+  // after each individual UPDATE, not after the whole batch, so swapping
+  // two slots' positions (e.g. moving a DJ from order 2 to 3 while another
+  // moves from 3 to 2) hit a transient collision even though the final
+  // layout was valid. Deleting everything first and bulk-inserting the
+  // final set in one statement (3g) sidesteps that — nothing is left to
+  // collide with, and the single INSERT is evaluated as one unit. Nothing
+  // else references event_dj_slots.id by foreign key (the DJ
+  // budget-expense rebuild in 3g.5 keys off the slot roster in `data`, not
+  // row ids), so discarding old slot ids here is safe.
+  if ((dbSlots ?? []).length > 0) {
     const { error: delSlotErr } = await admin
       .from('event_dj_slots')
       .delete()
-      .in('id', slotIdsToDelete)
+      .eq('event_id', data.id)
     if (delSlotErr) {
       return { ok: false, reason: 'db_failed', message: delSlotErr.message }
     }
@@ -405,40 +419,37 @@ export async function updateEvent(
     }
   }
 
-  // 3g. Update / insert slots.
-  for (const slot of data.slots) {
-    const stageId = stageIdByNumber.get(slot.stage_number)
-    if (!stageId) {
-      return {
-        ok: false,
-        reason: 'invalid',
-        issues: [
-          {
-            path: 'slots',
-            message: `Slot references stage ${slot.stage_number}, which doesn't exist.`,
-          },
-        ],
+  // 3g. Bulk-insert the full slot roster from the form in a single
+  // statement. Guard against a payload with two slots on the same stage +
+  // order first, so a form bug surfaces as a clear validation error
+  // instead of a raw constraint violation.
+  if (data.slots.length > 0) {
+    const seen = new Set<string>()
+    for (const slot of data.slots) {
+      const key = `${slot.stage_number}:${slot.slot_order}`
+      if (seen.has(key)) {
+        return {
+          ok: false,
+          reason: 'invalid',
+          issues: [
+            {
+              path: 'slots',
+              message: `Stage ${slot.stage_number} has two slots at order ${slot.slot_order}. Each stage can only have one slot per order.`,
+            },
+          ],
+        }
       }
+      seen.add(key)
     }
-    const rate = slot.rate ?? SLOT_DEFAULT_RATES[slot.slot_type as SlotType]
-    if (slot.id) {
-      const { error } = await admin
-        .from('event_dj_slots')
-        .update({
-          stage_id: stageId,
-          slot_order: slot.slot_order,
-          slot_type: slot.slot_type,
-          dj_id: slot.dj_id,
-          rate,
-          start_time: slot.start_time ?? null,
-          end_time: slot.end_time ?? null,
-        })
-        .eq('id', slot.id)
-      if (error) {
-        return { ok: false, reason: 'db_failed', message: error.message }
-      }
-    } else {
-      const { error } = await admin.from('event_dj_slots').insert({
+
+    const slotRows = data.slots.map((slot) => {
+      // Safe: every slot.stage_number was already checked against
+      // data.stages above (step 2, "Slot sanity"), and stageIdByNumber is
+      // built from that same data.stages list, so a lookup miss here
+      // can't happen.
+      const stageId = stageIdByNumber.get(slot.stage_number)!
+      const rate = slot.rate ?? SLOT_DEFAULT_RATES[slot.slot_type as SlotType]
+      return {
         event_id: data.id,
         stage_id: stageId,
         slot_order: slot.slot_order,
@@ -447,10 +458,14 @@ export async function updateEvent(
         rate,
         start_time: slot.start_time ?? null,
         end_time: slot.end_time ?? null,
-      })
-      if (error) {
-        return { ok: false, reason: 'db_failed', message: error.message }
       }
+    })
+
+    const { error: slotErr } = await admin
+      .from('event_dj_slots')
+      .insert(slotRows)
+    if (slotErr) {
+      return { ok: false, reason: 'db_failed', message: slotErr.message }
     }
   }
 
