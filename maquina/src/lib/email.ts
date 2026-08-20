@@ -379,10 +379,13 @@ export async function sendOfrendasVendorLogoReminderEmail(args: {
   const html = shell({
     heading: `Final reminder: we still need your Ofrendas logo 🖤`,
     bodyHtml: `
-      <p style="margin:0 0 12px;">Hola ${escapeHtml(args.contactName)},</p>
-      <p style="margin:0 0 12px;">This is a final reminder. We don't have a logo on file yet for <strong>${escapeHtml(args.businessName)}</strong>'s spot at <strong>Ofrendas: A Community Market</strong>, The Regent Theater, LA, Sunday, September 20, 2026.</p>
-      <p style="margin:0 0 12px;">Please send a decent-resolution PNG of your logo to <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a> so we can include it in marketing. If we don't have it soon, we'll pick a font to promote you with instead.</p>
-      <p style="margin:0 0 16px; font-style:italic; color:#71717a;">This is a no-reply address. Replies here won't be seen. Send your logo (or any questions) to ${supportEmail}.</p>
+      <p style="margin:0 0 12px;">Hola ${escapeHtml(args.contactName)}!</p>
+      <p style="margin:0 0 12px;">We're getting everything ready for Ofrendas: A Community Market at The Regent Theater on Sunday, September 20, and we're so excited to have <strong>${escapeHtml(args.businessName)}</strong> joining us!</p>
+      <p style="margin:0 0 12px;">Just a quick reminder that we still need your logo so we can include you in our upcoming marketing.</p>
+      <p style="margin:0 0 12px;">When you get a chance, please send us a decent-resolution PNG of your logo at <a href="mailto:${supportEmail}" style="color:#18181b;">${supportEmail}</a>.</p>
+      <p style="margin:0 0 12px;">If we don't receive a logo in time, no worries! We'll still make sure <strong>${escapeHtml(args.businessName)}</strong> is included and will use a font treatment for your business name instead.</p>
+      <p style="margin:0 0 16px; font-style:italic; color:#71717a;">Please note: this is a no-reply email, so any logos or questions should be sent directly to ${supportEmail}.</p>
+      <p style="margin:0 0 12px;">Thank you again for being part of our first Ofrendas. We can't wait to have you with us!</p>
       <p style="margin:0;">Gracias,<br>Ofrendas Team</p>
     `,
   })
@@ -390,7 +393,7 @@ export async function sendOfrendasVendorLogoReminderEmail(args: {
     to: args.to,
     subject: 'Final reminder: we still need your Ofrendas logo 🖤',
     html,
-    text: `Hola ${args.contactName}, this is a final reminder. We don't have a logo on file yet for ${args.businessName}'s spot at Ofrendas: A Community Market, The Regent Theater, LA, Sunday, September 20, 2026. Please send a decent-resolution PNG of your logo to ${supportEmail} so we can include it in marketing. If we don't have it soon, we'll pick a font to promote you with instead. This is a no-reply address. Replies here won't be seen. Send your logo (or any questions) to ${supportEmail}. Gracias, Ofrendas Team.`,
+    text: `Hola ${args.contactName}! We're getting everything ready for Ofrendas: A Community Market at The Regent Theater on Sunday, September 20, and we're so excited to have ${args.businessName} joining us! Just a quick reminder that we still need your logo so we can include you in our upcoming marketing. When you get a chance, please send us a decent-resolution PNG of your logo at ${supportEmail}. If we don't receive a logo in time, no worries! We'll still make sure ${args.businessName} is included and will use a font treatment for your business name instead. Please note: this is a no-reply email, so any logos or questions should be sent directly to ${supportEmail}. Thank you again for being part of our first Ofrendas. We can't wait to have you with us! Gracias, Ofrendas Team.`,
     from: 'Ofrendas Team (No-Reply) <maquina@losgoths.co>',
     replyTo: supportEmail,
   })
