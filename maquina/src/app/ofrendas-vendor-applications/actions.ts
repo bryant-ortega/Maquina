@@ -127,9 +127,10 @@ export async function setApplicationPaid(
 }
 
 /**
- * Toggle the `logo_received` flag on one application. No email side
- * effect — this is just a tracking checkbox for Chase, unlike
- * approved/paid.
+ * Toggle the `logo_received` flag on one application. Unchecking clears
+ * `logo_reminder_email_sent_at` so the vendor is eligible for the bulk
+ * reminder email again — same re-arm behavior as unapproving/unmarking
+ * paid.
  */
 export async function setApplicationLogoReceived(
   id: string,
@@ -145,6 +146,7 @@ export async function setApplicationLogoReceived(
     .update({
       logo_received: logoReceived,
       logo_received_at: logoReceived ? new Date().toISOString() : null,
+      ...(logoReceived ? {} : { logo_reminder_email_sent_at: null }),
     })
     .eq('id', id)
 
@@ -256,10 +258,11 @@ export async function sendPaidVendorEmails(): Promise<SendBulkEmailResult> {
 /**
  * Same bulk-send pattern as sendApprovedVendorEmails / sendPaidVendorEmails,
  * but for the "Email vendors missing logo" button — every paid
- * application whose logo_received checkbox isn't marked. No dedup
- * timestamp: checking logo_received removes a vendor from this list,
- * so it's meant to be re-clicked as a manual nudge (see the header
- * comment on sendOfrendasVendorLogoReminderEmail).
+ * application whose logo_received checkbox isn't marked and hasn't
+ * already gotten this email (logo_reminder_email_sent_at IS NULL).
+ * Unmarking logo_received clears that timestamp (see
+ * setApplicationLogoReceived), so a vendor becomes eligible again if
+ * their logo turns out unusable.
  */
 export async function sendLogoReminderVendorEmails(): Promise<SendBulkEmailResult> {
   const auth = await requireAdmin()
@@ -271,6 +274,7 @@ export async function sendLogoReminderVendorEmails(): Promise<SendBulkEmailResul
     .select('id, email, vendor_names, business_name')
     .eq('paid', true)
     .eq('logo_received', false)
+    .is('logo_reminder_email_sent_at', null)
 
   if (error) return { ok: false, reason: 'db_failed', message: error.message }
 
@@ -286,6 +290,10 @@ export async function sendLogoReminderVendorEmails(): Promise<SendBulkEmailResul
     })
     if (result.ok) {
       sent++
+      await admin
+        .from('ofrendas_vendor_applications')
+        .update({ logo_reminder_email_sent_at: new Date().toISOString() })
+        .eq('id', row.id)
     } else if (result.skipped) {
       skipped++
     } else {
@@ -293,6 +301,7 @@ export async function sendLogoReminderVendorEmails(): Promise<SendBulkEmailResul
     }
   }
 
+  revalidatePath('/ofrendas-vendor-applications')
   return { ok: true, sent, skipped, failed }
 }
 

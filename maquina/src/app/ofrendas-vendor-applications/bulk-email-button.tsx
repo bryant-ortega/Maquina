@@ -12,11 +12,10 @@ import {
 /**
  * "Email approved vendors" / "Email paid vendors" / "Email vendors
  * missing logo" buttons. Each click sends the matching form email to
- * every application matching that kind's criteria (server-side dedup
- * for approved/paid/waitlist — see actions.ts; logo_reminder has no
- * dedup, it's a re-clickable nudge). `pendingCount` comes from the
- * server component so the button's label and disabled state reflect
- * the latest data after revalidation.
+ * every application matching that kind's criteria, with server-side
+ * dedup so nobody gets the same email twice (see actions.ts).
+ * `pendingCount` comes from the server component so the button's label
+ * and disabled state reflect the latest data after revalidation.
  */
 export function BulkEmailButton({
   kind,

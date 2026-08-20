@@ -364,11 +364,9 @@ export async function sendOfrendasVendorPaymentConfirmationEmail(args: {
 /**
  * Ofrendas vendor-call logo reminder. Sent in bulk from the admin
  * "Email vendors missing logo" button — every paid application that
- * hasn't had its logo_received checkbox marked yet. Unlike the
- * approved/paid emails there's no *_email_sent_at dedup column: the
- * recipient list is naturally exclusive (marking logo_received removes
- * a vendor from it), so this is meant to be re-clicked as a manual
- * nudge for whoever's still outstanding.
+ * hasn't had its logo_received checkbox marked yet and hasn't already
+ * gotten this email, same logo_reminder_email_sent_at dedup pattern as
+ * the approved/paid emails.
  */
 export async function sendOfrendasVendorLogoReminderEmail(args: {
   to: string
