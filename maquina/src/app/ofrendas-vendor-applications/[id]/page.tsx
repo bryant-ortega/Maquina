@@ -1,7 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
-import { ApprovedCheckbox, PaidCheckbox } from '../status-toggles'
+import {
+  ApprovedCheckbox,
+  PaidCheckbox,
+  LogoReceivedCheckbox,
+} from '../status-toggles'
 
 /**
  * Admin detail view of a single Ofrendas vendor application.
@@ -51,6 +55,7 @@ type Application = {
   paid: boolean
   paid_at: string | null
   paid_email_sent_at: string | null
+  logo_received: boolean
   created_at: string
 }
 
@@ -71,7 +76,7 @@ export default async function OfrendasVendorApplicationDetailPage({
   const { data: app, error } = await admin
     .from('ofrendas_vendor_applications')
     .select(
-      'id, business_name, vendor_names, email, phone, instagram_handle, website_url, offerings, offerings_other, best_fit, best_fit_other, business_description, space_needed, food_permit_status, food_permit_other, menu_description, agreement_accepted, content_use_consent, booth_decor_plan, approved, approved_at, approved_email_sent_at, paid, paid_at, paid_email_sent_at, created_at'
+      'id, business_name, vendor_names, email, phone, instagram_handle, website_url, offerings, offerings_other, best_fit, best_fit_other, business_description, space_needed, food_permit_status, food_permit_other, menu_description, agreement_accepted, content_use_consent, booth_decor_plan, approved, approved_at, approved_email_sent_at, paid, paid_at, paid_email_sent_at, logo_received, created_at'
     )
     .eq('id', id)
     .maybeSingle()
@@ -142,6 +147,13 @@ export default async function OfrendasVendorApplicationDetailPage({
                 )}
               </span>
             )}
+          </label>
+          <label className="flex items-center gap-2 text-sm text-zinc-800 dark:text-zinc-200">
+            <LogoReceivedCheckbox
+              id={application.id}
+              initialLogoReceived={application.logo_received}
+            />
+            Logo received
           </label>
         </section>
 

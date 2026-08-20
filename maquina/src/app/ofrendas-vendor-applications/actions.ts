@@ -125,6 +125,35 @@ export async function setApplicationPaid(
   return { ok: true }
 }
 
+/**
+ * Toggle the `logo_received` flag on one application. No email side
+ * effect — this is just a tracking checkbox for Chase, unlike
+ * approved/paid.
+ */
+export async function setApplicationLogoReceived(
+  id: string,
+  logoReceived: boolean
+): Promise<ToggleResult> {
+  const auth = await requireAdmin()
+  if (!auth.ok) return auth
+  if (!UUID_LIKE.test(id)) return { ok: false, reason: 'invalid_id' }
+
+  const admin = serviceClient()
+  const { error } = await admin
+    .from('ofrendas_vendor_applications')
+    .update({
+      logo_received: logoReceived,
+      logo_received_at: logoReceived ? new Date().toISOString() : null,
+    })
+    .eq('id', id)
+
+  if (error) return { ok: false, reason: 'db_failed', message: error.message }
+
+  revalidatePath('/ofrendas-vendor-applications')
+  revalidatePath(`/ofrendas-vendor-applications/${id}`)
+  return { ok: true }
+}
+
 export type SendBulkEmailResult =
   | { ok: true; sent: number; skipped: number; failed: number }
   | { ok: false; reason: 'unauth' | 'forbidden' }

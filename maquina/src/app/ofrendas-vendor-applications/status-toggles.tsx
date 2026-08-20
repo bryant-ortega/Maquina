@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import {
   setApplicationApproved,
   setApplicationPaid,
+  setApplicationLogoReceived,
   type ToggleResult,
 } from './actions'
 
@@ -96,6 +97,23 @@ export function PaidCheckbox({
       initial={initialPaid}
       action={setApplicationPaid}
       label="Paid"
+    />
+  )
+}
+
+export function LogoReceivedCheckbox({
+  id,
+  initialLogoReceived,
+}: {
+  id: string
+  initialLogoReceived: boolean
+}) {
+  return (
+    <StatusCheckbox
+      id={id}
+      initial={initialLogoReceived}
+      action={setApplicationLogoReceived}
+      label="Logo received"
     />
   )
 }

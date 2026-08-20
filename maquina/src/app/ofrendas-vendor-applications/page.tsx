@@ -2,7 +2,11 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import { BulkEmailButton } from './bulk-email-button'
 import { GenerateInviteLink } from './generate-invite'
-import { ApprovedCheckbox, PaidCheckbox } from './status-toggles'
+import {
+  ApprovedCheckbox,
+  PaidCheckbox,
+  LogoReceivedCheckbox,
+} from './status-toggles'
 
 /**
  * Admin view of Ofrendas vendor-call submissions.
@@ -97,6 +101,7 @@ type ApplicationRow = {
   paid: boolean
   paid_email_sent_at: string | null
   waitlist_email_sent_at: string | null
+  logo_received: boolean
   created_at: string
 }
 
@@ -122,7 +127,7 @@ export default async function OfrendasVendorApplicationsPage({
   const { data: applications, error } = await admin
     .from('ofrendas_vendor_applications')
     .select(
-      'id, business_name, vendor_names, email, phone, best_fit, best_fit_other, offerings, space_needed, food_permit_status, approved, approved_email_sent_at, paid, paid_email_sent_at, waitlist_email_sent_at, created_at'
+      'id, business_name, vendor_names, email, phone, best_fit, best_fit_other, offerings, space_needed, food_permit_status, approved, approved_email_sent_at, paid, paid_email_sent_at, waitlist_email_sent_at, logo_received, created_at'
     )
     .order('created_at', { ascending: false })
 
@@ -275,6 +280,7 @@ export default async function OfrendasVendorApplicationsPage({
                 <th className="px-4 py-2.5 font-medium">Submitted</th>
                 <th className="px-4 py-2.5 font-medium">Approved</th>
                 <th className="px-4 py-2.5 font-medium">Paid</th>
+                <th className="px-4 py-2.5 font-medium">Logo</th>
                 <th className="px-4 py-2.5 font-medium" />
               </tr>
             </thead>
@@ -282,7 +288,7 @@ export default async function OfrendasVendorApplicationsPage({
               {visible.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-10 text-center text-zinc-500 dark:text-zinc-400"
                   >
                     {activeStatus || activeCategory
@@ -341,6 +347,12 @@ export default async function OfrendasVendorApplicationsPage({
                     </td>
                     <td className="px-4 py-3">
                       <PaidCheckbox id={app.id} initialPaid={app.paid} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <LogoReceivedCheckbox
+                        id={app.id}
+                        initialLogoReceived={app.logo_received}
+                      />
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
