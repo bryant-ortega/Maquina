@@ -333,7 +333,7 @@ export function ApplicationForm({
         />
       </Field>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2">
         <Field label="Contact email *" error={errors.email?.message}>
           <input
             type="email"
@@ -645,7 +645,7 @@ export function ApplicationForm({
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-md bg-zinc-100 px-4 py-3 text-base font-medium text-zinc-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? 'Submitting…' : 'Submit application'}
       </button>
