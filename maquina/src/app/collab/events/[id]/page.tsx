@@ -8,6 +8,10 @@ import {
 import {
   computeBudget,
   formatUSD,
+  formatUSDCents,
+  EXPENSE_CATEGORY_ORDER,
+  EXPENSE_CATEGORY_LABELS,
+  type ExpenseCategory,
 } from '@/lib/budget'
 import type { SlotType } from '@/lib/event-defaults'
 
@@ -23,7 +27,11 @@ import type { SlotType } from '@/lib/event-defaults'
  *   - Event scalars + stages + slots + venue → render Run of Show table
  *     by reusing buildSchedule().
  *   - Estimated budget + expenses + tiers → run computeBudget() and
- *     show the summary numbers (Income / Expenses / Profit / Walkout).
+ *     show the summary numbers (Income / Expenses / Profit / Walkout),
+ *     then the same expense lines again grouped by category so a partner
+ *     can see WHAT the expense total is made of, not just its size. The
+ *     grouping mirrors the admin budget page's category order rather than
+ *     the DB's alphabetical one, so the two surfaces read the same.
  *
  * RLS already filters every read here to events the user is attached to,
  * so a 404 from the event lookup means "you don't have access" — same
@@ -78,17 +86,28 @@ export default async function CollabEventDetailPage({
     .maybeSingle()
 
   let budgetSummary: ReturnType<typeof computeBudget> | null = null
+  // Held in page scope (not just inside the computeBudget call) because the
+  // Expense detail section renders the same rows a second time, grouped.
+  let expenseRows: ExpenseRow[] = []
   if (estBudget) {
     const [{ data: rawExpenses }, { data: rawTiers }] = await Promise.all([
       supabase
         .from('event_budget_expenses')
-        .select('id, qty, price')
-        .eq('budget_id', estBudget.id),
+        .select('id, category, item, qty, price')
+        .eq('budget_id', estBudget.id)
+        .order('category', { ascending: true })
+        .order('item', { ascending: true }),
       supabase
         .from('event_tix_tiers')
         .select('id, price, sold')
         .eq('budget_id', estBudget.id),
     ])
+    expenseRows = (rawExpenses ?? []).map((e) => ({
+      category: String(e.category ?? ''),
+      item: String(e.item ?? ''),
+      qty: Number(e.qty ?? 0),
+      price: Number(e.price ?? 0),
+    }))
     budgetSummary = computeBudget({
       tiers: (rawTiers ?? []).map((t) => ({
         price: Number(t.price ?? 0),
@@ -108,10 +127,9 @@ export default async function CollabEventDetailPage({
       merch_seller_fee: Number(estBudget.merch_seller_fee ?? 0),
       bar_per_head: Number(estBudget.bar_per_head ?? 24),
       bar_pct: Number(estBudget.bar_pct ?? 0.16),
-      expenses: (rawExpenses ?? []).map((e) => ({
-        qty: Number(e.qty ?? 0),
-        price: Number(e.price ?? 0),
-      })),
+      // ExpenseRow carries category/item too; computeBudget only reads
+      // qty and price, so the extra fields are harmless.
+      expenses: expenseRows,
     })
   }
 
@@ -302,9 +320,124 @@ export default async function CollabEventDetailPage({
             </div>
           )}
         </section>
+
+        {/* ---------- Expense detail ---------- */}
+        {budgetSummary && (
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Expense detail (estimated)
+              </h2>
+              <p className="font-mono text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+                {formatUSD(budgetSummary.est_expenses)} total
+              </p>
+            </div>
+
+            {expenseRows.length === 0 ? (
+              <div className="rounded-md border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
+                No expense lines on this budget.
+              </div>
+            ) : (
+              groupExpenses(expenseRows).map((group) => (
+                <div
+                  key={group.key}
+                  className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+                >
+                  <header className="flex items-baseline justify-between gap-3 border-b border-zinc-200 px-5 py-3 dark:border-zinc-800">
+                    <h3 className="text-sm font-semibold tracking-wide text-zinc-700 dark:text-zinc-200">
+                      {group.label}
+                    </h3>
+                    <p className="font-mono text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                      {formatUSDCents(group.subtotal)}
+                    </p>
+                  </header>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-500 dark:border-zinc-900 dark:text-zinc-400">
+                        <th className="px-5 py-2 text-left font-medium">Item</th>
+                        <th className="px-5 py-2 text-right font-medium">Qty</th>
+                        <th className="px-5 py-2 text-right font-medium">Price</th>
+                        <th className="px-5 py-2 text-right font-medium">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.rows.map((row, idx) => (
+                        <tr
+                          key={`${group.key}-${idx}-${row.item}`}
+                          className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                        >
+                          <td className="px-5 py-2 text-left text-zinc-800 dark:text-zinc-100">
+                            {row.item || '—'}
+                          </td>
+                          <td className="px-5 py-2 text-right font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
+                            {row.qty}
+                          </td>
+                          <td className="px-5 py-2 text-right font-mono text-xs tabular-nums text-zinc-600 dark:text-zinc-400">
+                            {formatUSDCents(row.price)}
+                          </td>
+                          <td className="px-5 py-2 text-right font-mono text-sm tabular-nums text-zinc-800 dark:text-zinc-100">
+                            {formatUSDCents(row.qty * row.price)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))
+            )}
+          </section>
+        )}
       </div>
     </div>
   )
+}
+
+type ExpenseRow = {
+  category: string
+  item: string
+  qty: number
+  price: number
+}
+
+type ExpenseGroup = {
+  key: string
+  label: string
+  rows: ExpenseRow[]
+  subtotal: number
+}
+
+/**
+ * Bucket expense lines by category in EXPENSE_CATEGORY_ORDER (the admin
+ * budget page's order), dropping empty categories. Anything the DB has
+ * that isn't in the enum — a category added by a migration this build
+ * predates — lands in a trailing "Other" group instead of vanishing.
+ */
+function groupExpenses(rows: ExpenseRow[]): ExpenseGroup[] {
+  const known = new Set<string>(EXPENSE_CATEGORY_ORDER)
+  const groups: ExpenseGroup[] = []
+
+  for (const cat of EXPENSE_CATEGORY_ORDER) {
+    const matched = rows.filter((r) => r.category === cat)
+    if (matched.length === 0) continue
+    groups.push({
+      key: cat,
+      label: EXPENSE_CATEGORY_LABELS[cat as ExpenseCategory],
+      rows: matched,
+      subtotal: matched.reduce((acc, r) => acc + r.qty * r.price, 0),
+    })
+  }
+
+  const other = rows.filter((r) => !known.has(r.category))
+  if (other.length > 0) {
+    groups.push({
+      key: '__other',
+      label: 'Other',
+      rows: other,
+      subtotal: other.reduce((acc, r) => acc + r.qty * r.price, 0),
+    })
+  }
+
+  return groups
 }
 
 function SummaryRow({
