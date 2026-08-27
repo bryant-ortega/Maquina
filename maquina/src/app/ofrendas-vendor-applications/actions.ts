@@ -145,7 +145,6 @@ export async function setApplicationLogoReceived(
     .from('ofrendas_vendor_applications')
     .update({
       logo_received: logoReceived,
-      logo_received_at: logoReceived ? new Date().toISOString() : null,
       ...(logoReceived ? {} : { logo_reminder_email_sent_at: null }),
     })
     .eq('id', id)

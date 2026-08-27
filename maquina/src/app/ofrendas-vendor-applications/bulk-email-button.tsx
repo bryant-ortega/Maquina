@@ -9,44 +9,42 @@ import {
   type SendBulkEmailResult,
 } from './actions'
 
+const KIND_CONFIG = {
+  approved: { label: 'Email approved vendors', send: sendApprovedVendorEmails },
+  paid: { label: 'Email paid vendors', send: sendPaidVendorEmails },
+  logo_reminder: {
+    label: 'Email vendors missing logo',
+    send: sendLogoReminderVendorEmails,
+  },
+  waitlist: { label: 'Email waitlisted vendors', send: sendWaitlistVendorEmails },
+} as const
+
+type Kind = keyof typeof KIND_CONFIG
+
 /**
  * "Email approved vendors" / "Email paid vendors" / "Email vendors
- * missing logo" buttons. Each click sends the matching form email to
- * every application matching that kind's criteria, with server-side
- * dedup so nobody gets the same email twice (see actions.ts).
- * `pendingCount` comes from the server component so the button's label
- * and disabled state reflect the latest data after revalidation.
+ * missing logo" / "Email waitlisted vendors" buttons. Each click sends
+ * the matching form email to every application matching that kind's
+ * criteria, with server-side dedup so nobody gets the same email twice
+ * (see actions.ts). `pendingCount` comes from the server component so
+ * the button's label and disabled state reflect the latest data after
+ * revalidation.
  */
 export function BulkEmailButton({
   kind,
   pendingCount,
 }: {
-  kind: 'approved' | 'paid' | 'logo_reminder' | 'waitlist'
+  kind: Kind
   pendingCount: number
 }) {
   const [pending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
-
-  const label =
-    kind === 'approved'
-      ? 'Email approved vendors'
-      : kind === 'paid'
-        ? 'Email paid vendors'
-        : kind === 'logo_reminder'
-          ? 'Email vendors missing logo'
-          : 'Email waitlisted vendors'
+  const { label, send } = KIND_CONFIG[kind]
 
   function onClick() {
     setMessage(null)
     startTransition(async () => {
-      const result: SendBulkEmailResult =
-        kind === 'approved'
-          ? await sendApprovedVendorEmails()
-          : kind === 'paid'
-            ? await sendPaidVendorEmails()
-            : kind === 'logo_reminder'
-              ? await sendLogoReminderVendorEmails()
-              : await sendWaitlistVendorEmails()
+      const result: SendBulkEmailResult = await send()
 
       if (!result.ok) {
         setMessage(messageFor(result))
