@@ -67,7 +67,10 @@ export type EventType = (typeof EVENT_TYPES)[number]
 // other option renders as plain text in its place instead (see
 // src/components/pdf-templates/brand-band.tsx). Short list by design —
 // add entries here by hand as new co-presented series come up.
-export const PRESENTED_BY_OPTIONS = ['LosGothsCo.', 'Scam and Jam'] as const
+export const PRESENTED_BY_OPTIONS = [
+  'LosGothsCo.',
+  'LosGothsCo. and Scam and Jam',
+] as const
 export type PresentedBy = (typeof PRESENTED_BY_OPTIONS)[number]
 export const DEFAULT_PRESENTED_BY: PresentedBy = 'LosGothsCo.'
 
