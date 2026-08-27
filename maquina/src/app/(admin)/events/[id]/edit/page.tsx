@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { EditEventForm } from './edit-event-form'
 import { CollaboratorsSection, type CollaboratorRow } from './collaborators-section'
+import { PRESENTED_BY_OPTIONS, DEFAULT_PRESENTED_BY } from '@/lib/event-defaults'
 
 /**
  * Admin event edit page (Phase 7b).
@@ -37,7 +38,7 @@ export default async function EditEventPage({
     supabase
       .from('events')
       .select(
-        'id, year, date, event_id, weekend_number, weekend_flag, day_of_week, title, type, venue_id, city, state, status, collab, stages, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, capacity, guarantee, bar_included, rent, split_pct, venue_tix_fee, advance_contact_email, advance_contact_phone, announce_date, begin_art_date, art_due_date, on_sale_date, venues(name)'
+        'id, year, date, event_id, weekend_number, weekend_flag, day_of_week, title, type, venue_id, city, state, presented_by, status, collab, stages, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, capacity, guarantee, bar_included, rent, split_pct, venue_tix_fee, advance_contact_email, advance_contact_phone, announce_date, begin_art_date, art_due_date, on_sale_date, venues(name)'
       )
       .eq('id', id)
       .maybeSingle(),
@@ -191,6 +192,14 @@ export default async function EditEventPage({
             city: (event.city as string) ?? '',
             state: (event.state as string) ?? '',
             venue_name: venueName,
+            // Falls back to the default if the stored value isn't one of
+            // today's options — e.g. an option removed from the array
+            // after this event was created (see event-defaults.ts).
+            presented_by: (PRESENTED_BY_OPTIONS as readonly string[]).includes(
+              event.presented_by as string
+            )
+              ? (event.presented_by as (typeof PRESENTED_BY_OPTIONS)[number])
+              : DEFAULT_PRESENTED_BY,
             status: event.status as 'tentative' | 'confirmed',
             collab: !!event.collab,
             doors_time: trimTime(event.doors_time as string | null),

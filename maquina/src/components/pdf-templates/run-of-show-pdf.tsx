@@ -21,11 +21,8 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import { styles, COLORS } from './styles'
-import {
-  LOGO_LOSGOTHS_TRIANGLE,
-  LOGO_LOSGOTHS_WORDMARK,
-  resolveTitleArtwork,
-} from './branding'
+import { resolveTitleArtwork } from './branding'
+import { BrandBand } from './brand-band'
 import type { RunOfShowRow } from '@/lib/run-of-show'
 
 export type RunOfShowPDFProps = {
@@ -40,6 +37,8 @@ export type RunOfShowPDFProps = {
     venueName?: string | null
     /** Street address, or null when the event/venue has none on file. */
     venueAddress?: string | null
+    /** events.presented_by. Falls back to the LosGothsCo default when empty. */
+    presentedBy?: string | null
   }
   stages: Array<{
     stageNumber: number
@@ -121,12 +120,6 @@ void COLORS
 // wraps in the schedule's two-column tables.
 const TIME_COL_WIDTH = 90 * ROS_SCALE
 
-// Brand band sizing. Skull triangle is ~square; wordmark is wide.
-const TRIANGLE_HEIGHT = 32
-const TRIANGLE_WIDTH = TRIANGLE_HEIGHT * (2820 / 2661)
-const WORDMARK_HEIGHT = 22
-const WORDMARK_WIDTH = WORDMARK_HEIGHT * (2732 / 690)
-
 // Title artwork (e.g., Gothicumbia) target height.
 const TITLE_ART_HEIGHT = 60
 
@@ -153,26 +146,7 @@ export function RunOfShowPDF({
       creator="Maquina"
     >
       <Page size="LETTER" style={rosStyles.page}>
-        {/* Brand band — skull triangle + wordmark on left, page caption on right. */}
-        <View style={styles.brandRow}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <Image
-              src={LOGO_LOSGOTHS_TRIANGLE}
-              style={{ height: TRIANGLE_HEIGHT, width: TRIANGLE_WIDTH }}
-            />
-            <Image
-              src={LOGO_LOSGOTHS_WORDMARK}
-              style={{ height: WORDMARK_HEIGHT, width: WORDMARK_WIDTH }}
-            />
-          </View>
-          <Text style={styles.brandRight}>Run of Show</Text>
-        </View>
+        <BrandBand presentedBy={event.presentedBy} caption="Run of Show" />
 
         {/* Event header — render brand artwork in place of plain title text
             when the event title matches a known series wordmark. */}

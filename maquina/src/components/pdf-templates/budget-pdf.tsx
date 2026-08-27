@@ -16,11 +16,8 @@
 
 import { Document, Page, View, Text, Image } from '@react-pdf/renderer'
 import { styles } from './styles'
-import {
-  LOGO_LOSGOTHS_TRIANGLE,
-  LOGO_LOSGOTHS_WORDMARK,
-  resolveTitleArtwork,
-} from './branding'
+import { resolveTitleArtwork } from './branding'
+import { BrandBand } from './brand-band'
 import {
   EXPENSE_CATEGORY_ORDER,
   EXPENSE_CATEGORY_LABELS,
@@ -30,11 +27,6 @@ import {
   type ExpenseCategory,
 } from '@/lib/budget'
 
-// Brand band sizing (kept in sync with run-of-show-pdf.tsx).
-const TRIANGLE_HEIGHT = 32
-const TRIANGLE_WIDTH = TRIANGLE_HEIGHT * (2820 / 2661)
-const WORDMARK_HEIGHT = 22
-const WORDMARK_WIDTH = WORDMARK_HEIGHT * (2732 / 690)
 const TITLE_ART_HEIGHT = 60
 
 export type BudgetPDFExpenseRow = {
@@ -58,6 +50,8 @@ export type BudgetPDFProps = {
     state: string
     splitPct: number
     barIncluded: boolean
+    /** events.presented_by. Falls back to the LosGothsCo default when empty. */
+    presentedBy?: string | null
   }
   budgetType: 'estimated' | 'final'
   summary: BudgetSummary
@@ -114,26 +108,10 @@ export function BudgetPDF({
       creator="Maquina"
     >
       <Page size="LETTER" style={styles.page}>
-        {/* Brand band — triangle + wordmark on left, page caption on right. */}
-        <View style={styles.brandRow}>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <Image
-              src={LOGO_LOSGOTHS_TRIANGLE}
-              style={{ height: TRIANGLE_HEIGHT, width: TRIANGLE_WIDTH }}
-            />
-            <Image
-              src={LOGO_LOSGOTHS_WORDMARK}
-              style={{ height: WORDMARK_HEIGHT, width: WORDMARK_WIDTH }}
-            />
-          </View>
-          <Text style={styles.brandRight}>Budget — {subtitleType}</Text>
-        </View>
+        <BrandBand
+          presentedBy={event.presentedBy}
+          caption={`Budget — ${subtitleType}`}
+        />
 
         {/* Event header — series-aware: render wordmark artwork when the
             event title matches a known series. */}

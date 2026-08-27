@@ -125,7 +125,7 @@ async function handleBudget(
   const { data: event, error: eventErr } = await supabase
     .from('events')
     .select(
-      'id, event_id, title, date, city, state, type, status, split_pct, bar_included'
+      'id, event_id, title, date, city, state, type, status, split_pct, bar_included, presented_by'
     )
     .eq('id', eventId)
     .maybeSingle()
@@ -212,6 +212,7 @@ async function handleBudget(
         state: (event.state as string) ?? '',
         splitPct: Number(event.split_pct ?? 0),
         barIncluded: !!event.bar_included,
+        presentedBy: event.presented_by as string | null,
       }}
       budgetType={resolvedType}
       summary={summary}

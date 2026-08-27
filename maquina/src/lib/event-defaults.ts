@@ -62,6 +62,15 @@ export const SLOT_TYPE_LABELS: Record<SlotType, string> = {
 export const EVENT_TYPES = ['club', 'concert', 'festival'] as const
 export type EventType = (typeof EVENT_TYPES)[number]
 
+// "Presented by" — whose branding heads the Run of Show / Budget PDFs.
+// The default renders the usual LosGothsCo triangle + wordmark; any
+// other option renders as plain text in its place instead (see
+// src/components/pdf-templates/brand-band.tsx). Short list by design —
+// add entries here by hand as new co-presented series come up.
+export const PRESENTED_BY_OPTIONS = ['LosGothsCo.', 'Scam and Jam'] as const
+export type PresentedBy = (typeof PRESENTED_BY_OPTIONS)[number]
+export const DEFAULT_PRESENTED_BY: PresentedBy = 'LosGothsCo.'
+
 export const TYPE_DATE_OFFSETS: Record<
   EventType,
   {

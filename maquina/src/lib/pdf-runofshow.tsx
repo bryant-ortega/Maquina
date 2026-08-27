@@ -57,7 +57,7 @@ export async function renderRunOfShowPdf({
     sb
       .from('events')
       .select(
-        'id, event_id, title, date, city, state, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, venues(name, address)'
+        'id, event_id, title, date, city, state, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, presented_by, venues(name, address)'
       )
       .eq('id', eventId)
       .maybeSingle(),
@@ -136,6 +136,7 @@ export async function renderRunOfShowPdf({
         endLabel: endUsable ? formatHHMM12(endMin) : '—',
         venueName: venue?.name ?? null,
         venueAddress: venue?.address ?? null,
+        presentedBy: event.presented_by as string | null,
       }}
       stages={stagePayload}
       generatedAt={new Date().toISOString()}

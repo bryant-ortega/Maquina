@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import {
   EVENT_TYPES,
+  PRESENTED_BY_OPTIONS,
+  DEFAULT_PRESENTED_BY,
   SLOT_TYPES,
   SLOT_DEFAULT_RATES,
   DEFAULT_EVENT_EXPENSES,
@@ -97,6 +99,7 @@ const CreateEventInput = z.object({
     .min(2, 'State is required')
     .max(40),
   venue_name: z.string().trim().min(1, 'Venue is required').max(200),
+  presented_by: z.enum(PRESENTED_BY_OPTIONS).default(DEFAULT_PRESENTED_BY),
 
   // Optional event details
   status: z.enum(['tentative', 'confirmed']).default('tentative'),
@@ -284,6 +287,7 @@ export async function createEvent(
       venue_id: venueId,
       city: data.city.trim(),
       state: data.state.trim(),
+      presented_by: data.presented_by,
       status: data.status,
       collab: data.collab,
       stages: stagesCount,

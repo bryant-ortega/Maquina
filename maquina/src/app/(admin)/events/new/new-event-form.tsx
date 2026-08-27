@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   EVENT_TYPES,
+  PRESENTED_BY_OPTIONS,
+  DEFAULT_PRESENTED_BY,
   SLOT_TYPES,
   SLOT_TYPE_LABELS,
   SLOT_DEFAULT_RATES,
@@ -16,6 +18,7 @@ import {
   nextMondayOnOrAfter,
   subtractBusinessDays,
   type EventType,
+  type PresentedBy,
   type SlotType,
 } from '@/lib/event-defaults'
 import { createEvent, type CreateEventResult } from './actions'
@@ -104,6 +107,9 @@ export function NewEventForm({
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [venueName, setVenueName] = useState('')
+  const [presentedBy, setPresentedBy] = useState<PresentedBy>(
+    DEFAULT_PRESENTED_BY
+  )
   const [status, setStatus] = useState<'tentative' | 'confirmed'>('tentative')
   const [collab, setCollab] = useState(false)
   const [doorsTime, setDoorsTime] = useState('21:00')
@@ -244,6 +250,7 @@ export function NewEventForm({
       city: city.trim(),
       state: state.trim(),
       venue_name: venueName.trim(),
+      presented_by: presentedBy,
       status,
       collab,
       doors_time: doorsTime,
@@ -537,6 +544,26 @@ export function NewEventForm({
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Existing venues match by city. New venues are created
               automatically on save.
+            </p>
+          </Field>
+
+          <Field label="Presented by" error={fieldErrors.presented_by}>
+            <select
+              value={presentedBy}
+              onChange={(e) => setPresentedBy(e.target.value as PresentedBy)}
+              className={inputClass}
+              disabled={pending}
+            >
+              {PRESENTED_BY_OPTIONS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Controls the branding at the top of the Run of Show and Budget
+              PDFs. {DEFAULT_PRESENTED_BY} keeps the usual logo; anything else
+              prints as text instead.
             </p>
           </Field>
         </div>
