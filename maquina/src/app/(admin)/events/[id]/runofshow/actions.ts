@@ -185,7 +185,13 @@ export async function sendRunOfShowEmail(
     year: 'numeric',
   })
   const subject = `${parsed.data.test_to ? '[TEST] ' : ''}Run of Show — ${pdf.title} · ${dateLong}`
-  const where = `${pdf.city}${pdf.state ? `, ${pdf.state}` : ''}`
+  // Venue name + street address lead when on file (matches the ROS PDF's
+  // own header), falling back to just city/state when they're not —
+  // most venues don't have an address on file yet (see events/[id]/edit).
+  const cityState = `${pdf.city}${pdf.state ? `, ${pdf.state}` : ''}`
+  const where = [pdf.venueName, pdf.venueAddress, cityState]
+    .filter(Boolean)
+    .join(', ')
   const text = [
     `¡Saludos! Run of Show attached for ${pdf.title}.`,
     `When: ${dateLong} Where: ${where}`,

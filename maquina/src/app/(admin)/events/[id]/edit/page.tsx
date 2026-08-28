@@ -38,7 +38,7 @@ export default async function EditEventPage({
     supabase
       .from('events')
       .select(
-        'id, year, date, event_id, weekend_number, weekend_flag, day_of_week, title, type, venue_id, city, state, presented_by, status, collab, stages, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, capacity, guarantee, bar_included, rent, split_pct, venue_tix_fee, advance_contact_email, advance_contact_phone, announce_date, begin_art_date, art_due_date, on_sale_date, venues(name)'
+        'id, year, date, event_id, weekend_number, weekend_flag, day_of_week, title, type, venue_id, city, state, presented_by, status, collab, stages, doors_time, end_time, losgoths_load_in_time, dj_load_in_time, capacity, guarantee, bar_included, rent, split_pct, venue_tix_fee, advance_contact_email, advance_contact_phone, announce_date, begin_art_date, art_due_date, on_sale_date, venues(name, address)'
       )
       .eq('id', id)
       .maybeSingle(),
@@ -61,7 +61,7 @@ export default async function EditEventPage({
       .order('dj_name', { ascending: true }),
     supabase
       .from('venues')
-      .select('id, name, city, state')
+      .select('id, name, city, state, address')
       .order('name', { ascending: true }),
     // Phase 13: collaborators for this event. Join through auth.users
     // for the email — but auth.users isn't directly readable, so we
@@ -109,10 +109,11 @@ export default async function EditEventPage({
   }
 
   // Supabase types the joined venue as either array or single. Coerce.
-  const venueName =
-    (Array.isArray(event.venues)
-      ? event.venues[0]?.name
-      : (event.venues as { name: string } | null)?.name) ?? ''
+  const joinedVenue = Array.isArray(event.venues)
+    ? event.venues[0]
+    : (event.venues as { name: string; address: string | null } | null)
+  const venueName = joinedVenue?.name ?? ''
+  const venueAddress = joinedVenue?.address ?? ''
 
   // Convert each DB stage into the form's expected shape, mapping
   // stage_id → stage_number for the slots so the form can work in
@@ -192,6 +193,7 @@ export default async function EditEventPage({
             city: (event.city as string) ?? '',
             state: (event.state as string) ?? '',
             venue_name: venueName,
+            venue_address: venueAddress,
             // Falls back to the default if the stored value isn't one of
             // today's options — e.g. an option removed from the array
             // after this event was created (see event-defaults.ts).

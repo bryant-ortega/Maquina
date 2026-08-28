@@ -99,6 +99,10 @@ const CreateEventInput = z.object({
     .min(2, 'State is required')
     .max(40),
   venue_name: z.string().trim().min(1, 'Venue is required').max(200),
+  venue_address: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.string().trim().max(300).optional()
+  ),
   presented_by: z.enum(PRESENTED_BY_OPTIONS).default(DEFAULT_PRESENTED_BY),
 
   // Optional event details
@@ -243,6 +247,17 @@ export async function createEvent(
     )
     if (hit) {
       venueId = hit.id
+      // Fill in the address if the admin typed one — but never clobber
+      // an existing address by leaving the field blank on this event.
+      if (data.venue_address) {
+        const { error: vAddrErr } = await admin
+          .from('venues')
+          .update({ address: data.venue_address })
+          .eq('id', hit.id)
+        if (vAddrErr) {
+          return { ok: false, reason: 'db_failed', message: vAddrErr.message }
+        }
+      }
     } else {
       const { data: inserted, error: vErr } = await admin
         .from('venues')
@@ -250,6 +265,7 @@ export async function createEvent(
           name: data.venue_name.trim(),
           city: data.city.trim(),
           state: data.state.trim(),
+          address: data.venue_address ?? null,
         })
         .select('id')
         .single()

@@ -7,9 +7,10 @@ import { NewEventForm } from './new-event-form'
  *
  * Pre-fetches the data the form needs to render its pickers:
  *   - DJ roster (id + dj_name) for slot rows
- *   - All venues (id + name + city + state) for the find-or-create
- *     autocomplete; the client filters this list to whatever city the
- *     admin is typing
+ *   - All venues (id + name + city + state + address) for the
+ *     find-or-create autocomplete; the client filters this list to
+ *     whatever city the admin is typing, and picking a suggestion
+ *     autofills its address too
  *   - Vendor roster (id + company_name) for the vendor multi-select
  *     (migration 0031) — just a plain checklist, no rate/time/slot
  *     fields like DJs get
@@ -27,7 +28,7 @@ export default async function NewEventPage() {
         .order('dj_name', { ascending: true }),
       supabase
         .from('venues')
-        .select('id, name, city, state')
+        .select('id, name, city, state, address')
         .order('name', { ascending: true }),
       supabase
         .from('vendors')

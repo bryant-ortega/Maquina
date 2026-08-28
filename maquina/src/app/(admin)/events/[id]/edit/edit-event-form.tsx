@@ -36,7 +36,13 @@ import { deleteEvent, updateEvent, type UpdateEventResult } from './actions'
  */
 
 type Dj = { id: string; dj_name: string; region: string | null }
-type Venue = { id: string; name: string; city: string; state: string }
+type Venue = {
+  id: string
+  name: string
+  city: string
+  state: string
+  address: string | null
+}
 type Vendor = { id: string; company_name: string }
 
 type StageRow = {
@@ -75,6 +81,7 @@ export type EditInitial = {
   city: string
   state: string
   venue_name: string
+  venue_address: string
   presented_by: PresentedBy
   status: 'tentative' | 'confirmed'
   collab: boolean
@@ -134,6 +141,7 @@ export function EditEventForm({
   const [city, setCity] = useState(initial.city)
   const [state, setState] = useState(initial.state)
   const [venueName, setVenueName] = useState(initial.venue_name)
+  const [venueAddress, setVenueAddress] = useState(initial.venue_address)
   const [presentedBy, setPresentedBy] = useState<PresentedBy>(
     initial.presented_by
   )
@@ -265,6 +273,7 @@ export function EditEventForm({
       city: city.trim(),
       state: state.trim(),
       venue_name: venueName.trim(),
+      venue_address: venueAddress.trim(),
       presented_by: presentedBy,
       status,
       collab,
@@ -569,6 +578,7 @@ export function EditEventForm({
                         onMouseDown={(e) => {
                           e.preventDefault()
                           setVenueName(v.name)
+                          setVenueAddress(v.address ?? '')
                           if (!state) {
                             const known = US_STATES.find(
                               (us) =>
@@ -594,6 +604,25 @@ export function EditEventForm({
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Existing venues match by city. New venues are created
               automatically on save.
+            </p>
+          </Field>
+
+          <Field
+            label="Venue address (optional)"
+            error={fieldErrors.venue_address}
+            className="sm:col-span-2"
+          >
+            <input
+              type="text"
+              value={venueAddress}
+              onChange={(e) => setVenueAddress(e.target.value)}
+              className={inputClass}
+              disabled={pending}
+              placeholder="448 S Main St"
+            />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Saved on the venue itself, so filling this in once carries
+              over to every other event at {venueName || 'this venue'}.
             </p>
           </Field>
 

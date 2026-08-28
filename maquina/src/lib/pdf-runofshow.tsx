@@ -37,6 +37,8 @@ export type RenderRosResult =
       date: string
       city: string
       state: string
+      venueName: string | null
+      venueAddress: string | null
     }
   | { ok: false; reason: 'not_found' }
 
@@ -153,5 +155,7 @@ export async function renderRunOfShowPdf({
     date: event.date as string,
     city: (event.city as string) ?? '',
     state: (event.state as string) ?? '',
+    venueName: venue?.name ?? null,
+    venueAddress: venue?.address ?? null,
   }
 }
