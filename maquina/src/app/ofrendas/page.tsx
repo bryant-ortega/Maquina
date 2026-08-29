@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import { OfrendasHeader } from '@/components/ofrendas/header'
 import { OfrendasNav } from '@/components/ofrendas/nav'
 
@@ -9,9 +10,9 @@ import { OfrendasNav } from '@/components/ofrendas/nav'
  * "About / Submit"). No nav entry anywhere in the app; Chase sends
  * this URL directly.
  *
- * The hero image below is a placeholder — Chase is providing the real
- * image; swap the placeholder <div> for an <Image> once it's in
- * public/ofrendas/.
+ * Hero image is the same aztec-sun-skull photo already used (small,
+ * circular) on the application page — Chase pointed at that page's
+ * image rather than supplying a new one.
  *
  * Root layout already sets robots: noindex/nofollow site-wide, so this
  * won't get crawled or indexed either.
@@ -27,10 +28,15 @@ export default function OfrendasSplashPage() {
         <OfrendasHeader />
         <OfrendasNav />
 
-        {/* Hero image placeholder — replace with the real <Image> once
-            Chase provides it. */}
-        <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 text-sm text-zinc-600">
-          Hero image coming soon
+        <div className="relative mx-auto aspect-square w-full max-w-xl overflow-hidden rounded-lg">
+          <Image
+            src="/ofrendas/aztec-sun-skull.jpeg"
+            alt="Aztec sun-skull carving"
+            fill
+            sizes="(min-width: 640px) 576px, 100vw"
+            priority
+            className="object-cover"
+          />
         </div>
 
         <div className="space-y-2 text-center">
