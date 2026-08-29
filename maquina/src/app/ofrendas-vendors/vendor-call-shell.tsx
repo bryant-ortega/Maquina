@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { OfrendasNav } from '@/components/ofrendas/nav'
 
 /**
  * Shared visual shell for the Ofrendas vendor call — the header, the
@@ -55,6 +56,7 @@ export function OfrendasVendorCallShell({
               Presents
             </span>
           </div>
+          <OfrendasNav />
           <div className="relative mx-auto h-32 w-32 sm:h-36 sm:w-36">
             <Image
               src="/ofrendas/aztec-sun-skull.jpeg"
