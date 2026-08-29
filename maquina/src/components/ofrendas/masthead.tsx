@@ -8,8 +8,8 @@ import { usePathname } from 'next/navigation'
  * Combined header + nav for the public Ofrendas surface — the splash
  * page (/ofrendas), its FAQ and Vendors List sub-pages, and the
  * existing vendor application page (/ofrendas-vendors, reused as-is
- * for "About / Submit" rather than duplicated). Replaces the earlier
- * separate OfrendasHeader/OfrendasNav split: the skull image needs to
+ * for "Submit" rather than duplicated). Replaces the earlier separate
+ * OfrendasHeader/OfrendasNav split: the skull image needs to
  * span the full height of the wordmark-row + nav-row column next to
  * it (top of wordmark to bottom of the nav links), which only a
  * shared flex row with `items-stretch` can do — it can't be sized
@@ -22,7 +22,7 @@ import { usePathname } from 'next/navigation'
 const LINKS = [
   { href: '/ofrendas/faq', label: 'FAQ' },
   { href: '/ofrendas/vendors', label: 'Vendors List' },
-  { href: '/ofrendas-vendors', label: 'About / Submit' },
+  { href: '/ofrendas-vendors', label: 'Submit' },
 ] as const
 
 export function OfrendasMasthead() {
