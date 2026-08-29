@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function OfrendasFaqPage() {
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-950 px-3 py-8 sm:px-6 sm:py-16">
+    <div className="flex flex-1 items-center justify-center bg-black px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-2xl space-y-8">
         <OfrendasHeader />
         <OfrendasNav />

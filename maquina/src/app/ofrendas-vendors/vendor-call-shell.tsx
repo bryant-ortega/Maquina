@@ -40,7 +40,7 @@ export function OfrendasVendorCallShell({
   formSlot: React.ReactNode
 }) {
   return (
-    <div className="flex flex-1 items-center justify-center bg-zinc-950 px-3 py-8 sm:px-6 sm:py-16">
+    <div className="flex flex-1 items-center justify-center bg-black px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-3xl space-y-6 px-2 py-6 sm:space-y-8 sm:p-10">
         <div className="space-y-5 text-center">
           <div className="flex items-center justify-center gap-2">
