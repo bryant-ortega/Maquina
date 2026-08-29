@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -24,7 +25,14 @@ export function OfrendasNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="flex flex-wrap justify-center gap-x-8 gap-y-2 border-b border-zinc-800 pb-6 text-xs font-semibold uppercase tracking-widest">
+    <nav className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 border-b border-zinc-800 pb-6 text-xs font-semibold uppercase tracking-widest">
+      <Image
+        src="/ofrendas/aztec-sun-skull.jpeg"
+        alt=""
+        width={28}
+        height={28}
+        className="h-7 w-7 shrink-0 rounded-full object-cover"
+      />
       {LINKS.map((link) => {
         const active = pathname === link.href
         return (
