@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@supabase/supabase-js'
-import { OfrendasHeader } from '@/components/ofrendas/header'
-import { OfrendasNav } from '@/components/ofrendas/nav'
+import { OfrendasMasthead } from '@/components/ofrendas/masthead'
 
 /**
  * Public Ofrendas vendors list — every approved AND paid vendor,
@@ -57,8 +56,7 @@ export default async function OfrendasVendorsListPage() {
   return (
     <div className="flex flex-1 items-center justify-center bg-black px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-2xl space-y-8">
-        <OfrendasHeader />
-        <OfrendasNav />
+        <OfrendasMasthead />
 
         <h1 className="text-center text-3xl font-semibold tracking-tight text-zinc-100">
           Vendors

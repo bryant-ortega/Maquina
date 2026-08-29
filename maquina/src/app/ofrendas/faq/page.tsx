@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
-import { OfrendasHeader } from '@/components/ofrendas/header'
-import { OfrendasNav } from '@/components/ofrendas/nav'
+import { OfrendasMasthead } from '@/components/ofrendas/masthead'
 
 /**
  * Ofrendas FAQ page. Copy provided by Chase directly — section styling
@@ -43,8 +42,7 @@ export default function OfrendasFaqPage() {
   return (
     <div className="flex flex-1 items-center justify-center bg-black px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-2xl space-y-8">
-        <OfrendasHeader />
-        <OfrendasNav />
+        <OfrendasMasthead />
 
         <h1 className="text-center text-3xl font-semibold tracking-tight text-zinc-100">
           Vendor Info and FAQ

@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { OfrendasNav } from '@/components/ofrendas/nav'
+import { OfrendasMasthead } from '@/components/ofrendas/masthead'
 
 /**
  * Shared visual shell for the Ofrendas vendor call — the header, the
@@ -42,21 +42,8 @@ export function OfrendasVendorCallShell({
   return (
     <div className="flex flex-1 items-center justify-center bg-black px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-3xl space-y-6 px-2 py-6 sm:space-y-8 sm:p-10">
+        <OfrendasMasthead />
         <div className="space-y-5 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <Image
-              src="/ofrendas/losgothsco-wordmark.png"
-              alt="LosGothsCo"
-              width={107}
-              height={24}
-              priority
-              className="h-6 w-auto object-contain"
-            />
-            <span className="text-base font-semibold uppercase tracking-widest leading-none text-zinc-500">
-              Presents
-            </span>
-          </div>
-          <OfrendasNav />
           <div className="relative mx-auto h-32 w-32 sm:h-36 sm:w-36">
             <Image
               src="/ofrendas/aztec-sun-skull.jpeg"

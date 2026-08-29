@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import { OfrendasHeader } from '@/components/ofrendas/header'
-import { OfrendasNav } from '@/components/ofrendas/nav'
+import { OfrendasMasthead } from '@/components/ofrendas/masthead'
 
 /**
  * Public Ofrendas splash page — the landing spot for the whole public
@@ -26,8 +25,7 @@ export default function OfrendasSplashPage() {
   return (
     <div className="flex flex-1 items-center justify-center bg-black px-3 py-8 sm:px-6 sm:py-16">
       <div className="w-full max-w-3xl space-y-8">
-        <OfrendasHeader />
-        <OfrendasNav />
+        <OfrendasMasthead />
 
         <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-lg">
           <Image
