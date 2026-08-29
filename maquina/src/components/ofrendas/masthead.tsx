@@ -37,12 +37,13 @@ export function OfrendasMasthead() {
             alt=""
             fill
             sizes="96px"
+            priority
             className="object-cover"
           />
         </div>
 
         <div className="flex flex-col justify-between gap-3">
-          <Link href="/ofrendas" className="flex items-center gap-2">
+          <Link href="/ofrendas" className="flex items-end gap-2">
             <Image
               src="/ofrendas/losgothsco-wordmark.png"
               alt="LosGothsCo"
