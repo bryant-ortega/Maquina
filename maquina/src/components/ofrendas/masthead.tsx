@@ -51,7 +51,7 @@ export function OfrendasMasthead() {
               priority
               className="h-6 w-auto object-contain"
             />
-            <span className="text-base font-semibold uppercase tracking-widest leading-none text-zinc-500">
+            <span className="text-xs font-semibold uppercase tracking-widest leading-none text-zinc-500">
               Presents
             </span>
           </Link>
