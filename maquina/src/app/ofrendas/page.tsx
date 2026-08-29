@@ -10,9 +10,10 @@ import { OfrendasNav } from '@/components/ofrendas/nav'
  * "About / Submit"). No nav entry anywhere in the app; Chase sends
  * this URL directly.
  *
- * Hero image is the same aztec-sun-skull photo already used (small,
- * circular) on the application page — Chase pointed at that page's
- * image rather than supplying a new one.
+ * Hero image is the event flyer (public/ofrendas/Ofrendas_Flyer.JPG) —
+ * it already carries the date/venue/address, so there's no separate
+ * title/subtitle text under it; that would just repeat what the flyer
+ * already says.
  *
  * Root layout already sets robots: noindex/nofollow site-wide, so this
  * won't get crawled or indexed either.
@@ -28,24 +29,15 @@ export default function OfrendasSplashPage() {
         <OfrendasHeader />
         <OfrendasNav />
 
-        <div className="relative mx-auto aspect-square w-full max-w-xl overflow-hidden rounded-lg">
+        <div className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-lg">
           <Image
-            src="/ofrendas/aztec-sun-skull.jpeg"
-            alt="Aztec sun-skull carving"
+            src="/ofrendas/Ofrendas_Flyer.JPG"
+            alt="Ofrendas: A Community Market — Sunday, September 20, 2026, The Regent Theater, 448 S Main St, Los Angeles, CA 90013, 12pm to 6pm, all ages, free entrance"
             fill
-            sizes="(min-width: 640px) 576px, 100vw"
+            sizes="(min-width: 640px) 448px, 100vw"
             priority
             className="object-cover"
           />
-        </div>
-
-        <div className="space-y-2 text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-zinc-100">
-            Ofrendas: A Community Market
-          </h1>
-          <p className="text-base text-zinc-500">
-            The Regent Theater, LA &middot; Sunday, September 20, 2026
-          </p>
         </div>
       </div>
     </div>
